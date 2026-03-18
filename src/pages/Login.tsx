@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Waves, ChevronDown, ChevronUp } from 'lucide-react';
 
 import type { UserRole } from '../types';
@@ -31,7 +31,9 @@ const ROLE_COLORS: Record<UserRole, string> = {
 export const Login: React.FC = () => {
     const { login, isAuthenticated, user } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const { t } = useTranslation();
+    const redirectPath = location.state?.from?.pathname as string | undefined;
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -42,11 +44,16 @@ export const Login: React.FC = () => {
     // Auto-redirect if already logged in
     React.useEffect(() => {
         if (isAuthenticated && user) {
+            if (redirectPath) {
+                navigate(redirectPath, { replace: true });
+                return;
+            }
+
             if (user.role === 'admin') navigate('/admin', { replace: true });
             else if (user.role === 'coach') navigate('/coach', { replace: true });
             else navigate('/student', { replace: true });
         }
-    }, [isAuthenticated, user, navigate]);
+    }, [isAuthenticated, user, navigate, redirectPath]);
 
     const handleLogin = (e: React.FormEvent) => {
         e.preventDefault();

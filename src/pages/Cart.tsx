@@ -1,11 +1,10 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { PageHeader } from '../components/PageHeader';
 import { subscriptionPlans } from '../data/mockData';
 import {
-    ShoppingCart, Trash2, Plus, Minus, ArrowLeft, CreditCard, Tag,
-    Award, Calendar, Bus, CheckCircle, Lock, Waves, Users, Clock
+    ShoppingCart, Trash2, Plus, Minus, CreditCard, Tag,
+    Calendar, CheckCircle, Lock, Waves, Users, Clock
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -33,14 +32,8 @@ const HOW_IT_WORKS = [
     { step: '3', title: 'Finalizează plata', icon: CreditCard },
 ];
 
-const BENEFITS = [
-    { title: 'Antrenori certificați', icon: Award },
-    { title: 'Program flexibil', icon: Calendar },
-    { title: 'Transport disponibil', icon: Bus },
-];
-
 export const CartPage: React.FC = () => {
-    const { items, removeItem, updateQuantity, clearCart, totalItems, totalPrice } = useCart();
+    const { items, removeItem, updateQuantity, clearCart, totalPrice } = useCart();
     const navigate = useNavigate();
 
     // Calculate totals for summary
