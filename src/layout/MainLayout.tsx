@@ -8,7 +8,7 @@ import { clsx } from 'clsx';
 
 export const MainLayout: React.FC = () => {
     const location = useLocation();
-    const isDashboard = location.pathname === '/';
+    const isHome = location.pathname === '/';
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
@@ -22,6 +22,7 @@ export const MainLayout: React.FC = () => {
             <SideMenu
                 isOpen={isMenuOpen}
                 onClose={() => setIsMenuOpen(false)}
+                onSearchClick={() => setIsSearchOpen(true)}
             />
 
             <GlobalSearch
@@ -29,10 +30,7 @@ export const MainLayout: React.FC = () => {
                 onClose={() => setIsSearchOpen(false)}
             />
 
-            <main className={clsx(
-                "flex-1 flex flex-col",
-                !isDashboard && "pt-24"
-            )}>
+            <main className={clsx('flex-1 flex flex-col', isHome ? 'pt-0' : 'pt-20 md:pt-24')}>
                 <Outlet />
             </main>
 

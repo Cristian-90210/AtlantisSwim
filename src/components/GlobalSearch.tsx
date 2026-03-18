@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { mockCourses, mockCoaches, mockStudents } from '../data/mockData';
@@ -9,31 +9,58 @@ interface GlobalSearchProps {
     onClose: () => void;
 }
 
-export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
+/**
+ * Custom hook: debounces a string value by `delay` ms.
+ * No external dependencies — just useEffect + setTimeout.
+ */
+function useDebouncedValue(value: string, delay: number): string {
+    const [debounced, setDebounced] = useState(value);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebounced(value), delay);
+        return () => clearTimeout(timer);
+    }, [value, delay]);
+
+    return debounced;
+}
+
+export const GlobalSearch: React.FC<GlobalSearchProps> = React.memo(({ isOpen, onClose }) => {
     const [query, setQuery] = useState('');
     const navigate = useNavigate();
     const { t } = useTranslation();
 
-    const results = useMemo(() => {
-        if (!query || query.length < 2) return { courses: [], coaches: [], students: [] };
+    /* ─── Debounce: filtering runs 300ms after the user stops typing ─── */
+    const debouncedQuery = useDebouncedValue(query, 300);
 
-        const lowerQuery = query.toLowerCase();
+    const results = useMemo(() => {
+        if (!debouncedQuery || debouncedQuery.length < 2) return { courses: [], coaches: [], students: [] };
+
+        const lowerQuery = debouncedQuery.toLowerCase();
         return {
             courses: mockCourses.filter(c => c.title.toLowerCase().includes(lowerQuery)),
             coaches: mockCoaches.filter(c => c.name.toLowerCase().includes(lowerQuery)),
             students: mockStudents.filter(s => s.name.toLowerCase().includes(lowerQuery))
         };
-    }, [query]);
+    }, [debouncedQuery]);
 
     const hasResults = results.courses.length > 0 || results.coaches.length > 0 || results.students.length > 0;
 
-    if (!isOpen) return null;
+    /* Reset query when modal closes */
+    useEffect(() => {
+        if (!isOpen) setQuery('');
+    }, [isOpen]);
 
-    const handleNavigate = (path: string) => {
+    const handleNavigate = useCallback((path: string) => {
         navigate(path);
         onClose();
         setQuery('');
-    };
+    }, [navigate, onClose]);
+
+    const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setQuery(e.target.value);
+    }, []);
+
+    if (!isOpen) return null;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-start justify-center pt-24 px-4">
@@ -50,7 +77,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
                         className="flex-1 bg-transparent text-xl outline-none text-gray-800 dark:text-white placeholder-gray-400"
                         autoFocus
                         value={query}
-                        onChange={(e) => setQuery(e.target.value)}
+                        onChange={handleInputChange}
                     />
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full">
                         <X className="w-5 h-5 text-gray-500" />
@@ -68,7 +95,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
 
                     {query && !hasResults && (
                         <div className="p-8 text-center text-gray-500">
-                            No results found for "{query}"
+                            No results found for "{debouncedQuery}"
                         </div>
                     )}
 
@@ -146,4 +173,4 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) =
             </div>
         </div>
     );
-};
+});

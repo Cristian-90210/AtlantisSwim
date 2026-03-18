@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import {
@@ -25,21 +25,53 @@ function detectBrand(number: string): string {
     return '';
 }
 
+/* ─── Memoized Field wrapper — skips re-render if props unchanged ─── */
+const Field = React.memo(function Field({
+    label, icon, error, children, className = ''
+}: { label: string; icon: React.ReactNode; error?: string; children: React.ReactNode; className?: string }) {
+    return (
+        <div className={className}>
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-blue-200/70 uppercase tracking-wide mb-1.5">
+                <span className="text-[#00c6ff]">{icon}</span>{label}
+            </label>
+            {children}
+            {error && <p className="text-red-400 text-[11px] mt-1">{error}</p>}
+        </div>
+    );
+});
+
+function inputCls(hasError: boolean) {
+    return [
+        'w-full px-4 py-2.5 rounded-xl text-sm bg-white/5 border',
+        'text-white placeholder-white/30',
+        'focus:outline-none focus:ring-2 focus:ring-[#00c6ff]/50 transition-all duration-200',
+        hasError
+            ? 'border-red-400 focus:ring-red-400/40'
+            : 'border-white/10 focus:border-[#00c6ff]',
+    ].join(' ');
+}
+
 export const Checkout: React.FC = () => {
     const navigate = useNavigate();
     const { items, totalPrice, clearCart } = useCart();
 
-    /* form state */
-    const [form, setForm] = useState({
-        name: '', email: '', phone: '',
+    /* ─── UNCONTROLLED refs for personal data (no live preview needed) ─── */
+    const nameRef = useRef<HTMLInputElement>(null);
+    const emailRef = useRef<HTMLInputElement>(null);
+    const phoneRef = useRef<HTMLInputElement>(null);
+
+    /* ─── CONTROLLED state only for card fields (live preview required) ─── */
+    const [cardForm, setCardForm] = useState({
         cardNumber: '', cardHolder: '', expiry: '', cvv: '',
     });
-    const [errors, setErrors] = useState<Partial<typeof form>>({});
+    const [errors, setErrors] = useState<Record<string, string | undefined>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [isSuccess, setIsSuccess] = useState(false);
     const [flipped, setFlipped] = useState(false);
+    /* Keep email in state only for success screen display */
+    const [submittedEmail, setSubmittedEmail] = useState('');
 
-    const brand = detectBrand(form.cardNumber);
+    const brand = detectBrand(cardForm.cardNumber);
 
     /* dacă coșul e gol, redirect la coș */
     if (items.length === 0 && !isSuccess) {
@@ -60,16 +92,20 @@ export const Checkout: React.FC = () => {
         );
     }
 
-    /* Validare */
+    /* Validare — reads refs for personal fields, state for card fields */
     function validate() {
-        const e: Partial<typeof form> = {};
-        if (!form.name.trim()) e.name = 'Câmp obligatoriu';
-        if (!form.email.includes('@')) e.email = 'Email invalid';
-        if (form.phone.replace(/\D/g, '').length < 9) e.phone = 'Număr invalid';
-        if (form.cardNumber.replace(/\s/g, '').length < 16) e.cardNumber = 'Număr card incomplet';
-        if (!form.cardHolder.trim()) e.cardHolder = 'Câmp obligatoriu';
-        if (form.expiry.length < 5) e.expiry = 'Dată invalidă';
-        if (form.cvv.length < 3) e.cvv = 'CVV invalid';
+        const e: Record<string, string | undefined> = {};
+        const name = nameRef.current?.value || '';
+        const email = emailRef.current?.value || '';
+        const phone = phoneRef.current?.value || '';
+
+        if (!name.trim()) e.name = 'Câmp obligatoriu';
+        if (!email.includes('@')) e.email = 'Email invalid';
+        if (phone.replace(/\D/g, '').length < 9) e.phone = 'Număr invalid';
+        if (cardForm.cardNumber.replace(/\s/g, '').length < 16) e.cardNumber = 'Număr card incomplet';
+        if (!cardForm.cardHolder.trim()) e.cardHolder = 'Câmp obligatoriu';
+        if (cardForm.expiry.length < 5) e.expiry = 'Dată invalidă';
+        if (cardForm.cvv.length < 3) e.cvv = 'CVV invalid';
         return e;
     }
 
@@ -78,6 +114,7 @@ export const Checkout: React.FC = () => {
         const errs = validate();
         if (Object.keys(errs).length) { setErrors(errs); return; }
         setErrors({});
+        setSubmittedEmail(emailRef.current?.value || '');
         setIsLoading(true);
         await new Promise(r => setTimeout(r, 2200)); // simulare procesare
         setIsLoading(false);
@@ -85,14 +122,20 @@ export const Checkout: React.FC = () => {
         clearCart();
     }
 
-    function handleChange(field: keyof typeof form, raw: string) {
+    /* ─── Card field handler — useCallback avoids new function each render ─── */
+    const handleCardChange = useCallback((field: keyof typeof cardForm, raw: string) => {
         let value = raw;
         if (field === 'cardNumber') value = formatCardNumber(raw);
         if (field === 'expiry') value = formatExpiry(raw);
         if (field === 'cvv') value = raw.replace(/\D/g, '').slice(0, 4);
-        setForm(prev => ({ ...prev, [field]: value }));
+        setCardForm(prev => ({ ...prev, [field]: value }));
         setErrors(prev => ({ ...prev, [field]: undefined }));
-    }
+    }, []);
+
+    /* ─── Personal field blur handler — clears validation error on blur ─── */
+    const handlePersonalBlur = useCallback((field: string) => {
+        setErrors(prev => ({ ...prev, [field]: undefined }));
+    }, []);
 
     /* ─── SUCCESS SCREEN ─── */
     if (isSuccess) {
@@ -112,7 +155,7 @@ export const Checkout: React.FC = () => {
                         Abonamentul tău a fost activat cu succes.
                     </p>
                     <p className="text-sm text-blue-200/50 mb-8">
-                        Un email de confirmare a fost trimis la <span className="text-host-cyan font-medium">{form.email}</span>
+                        Un email de confirmare a fost trimis la <span className="text-host-cyan font-medium">{submittedEmail}</span>
                     </p>
                     <button
                         onClick={() => navigate('/')}
@@ -174,7 +217,7 @@ export const Checkout: React.FC = () => {
                     {/* ─── FORMULAR ─── */}
                     <form onSubmit={handleSubmit} className="lg:col-span-3 space-y-4">
 
-                        {/* Date personale */}
+                        {/* Date personale — UNCONTROLLED (useRef + onBlur) */}
                         <div className="bg-white/8 backdrop-blur-sm border border-white/15 rounded-2xl p-5">
                             <h2 className="font-bold text-white text-lg mb-3 flex items-center gap-2">
                                 <User size={18} className="text-[#00c6ff]" /> Date Personale
@@ -182,35 +225,38 @@ export const Checkout: React.FC = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <Field label="Nume complet" icon={<User size={15} />} error={errors.name}>
                                     <input
+                                        ref={nameRef}
                                         type="text"
                                         placeholder="Ion Popescu"
-                                        value={form.name}
-                                        onChange={e => handleChange('name', e.target.value)}
+                                        defaultValue=""
+                                        onBlur={() => handlePersonalBlur('name')}
                                         className={inputCls(!!errors.name)}
                                     />
                                 </Field>
                                 <Field label="Email" icon={<Mail size={15} />} error={errors.email}>
                                     <input
+                                        ref={emailRef}
                                         type="email"
                                         placeholder="ion@email.com"
-                                        value={form.email}
-                                        onChange={e => handleChange('email', e.target.value)}
+                                        defaultValue=""
+                                        onBlur={() => handlePersonalBlur('email')}
                                         className={inputCls(!!errors.email)}
                                     />
                                 </Field>
                                 <Field label="Telefon" icon={<Phone size={15} />} error={errors.phone} className="sm:col-span-2">
                                     <input
+                                        ref={phoneRef}
                                         type="tel"
                                         placeholder="+373 60 000 000"
-                                        value={form.phone}
-                                        onChange={e => handleChange('phone', e.target.value)}
+                                        defaultValue=""
+                                        onBlur={() => handlePersonalBlur('phone')}
                                         className={inputCls(!!errors.phone)}
                                     />
                                 </Field>
                             </div>
                         </div>
 
-                        {/* Date card */}
+                        {/* Date card — CONTROLLED (live preview required) */}
                         <div className="bg-white/8 backdrop-blur-sm border border-white/15 rounded-2xl p-5">
                             <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                 <h2 className="font-bold text-white text-lg flex items-center gap-2">
@@ -251,11 +297,11 @@ export const Checkout: React.FC = () => {
                                         </div>
                                         <div>
                                             <p className="text-white font-mono text-lg tracking-[0.25em] mb-1">
-                                                {form.cardNumber || '•••• •••• •••• ••••'}
+                                                {cardForm.cardNumber || '•••• •••• •••• ••••'}
                                             </p>
                                             <div className="flex justify-between text-white/70 text-xs">
-                                                <span>{form.cardHolder || 'TITULCARDULUI'}</span>
-                                                <span>{form.expiry || 'MM/YY'}</span>
+                                                <span>{cardForm.cardHolder || 'TITULCARDULUI'}</span>
+                                                <span>{cardForm.expiry || 'MM/YY'}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -272,7 +318,7 @@ export const Checkout: React.FC = () => {
                                         <div className="px-5 mt-3 flex items-center justify-end gap-3">
                                             <div className="flex-1 h-7 bg-white/20 rounded" />
                                             <div className="bg-white rounded px-3 py-1 font-mono font-bold text-gray-900 text-sm min-w-[50px] text-center">
-                                                {form.cvv || '•••'}
+                                                {cardForm.cvv || '•••'}
                                             </div>
                                         </div>
                                         <p className="text-white/40 text-[10px] text-center mt-2">Apasă cardul pentru a-l întoarce</p>
@@ -286,8 +332,8 @@ export const Checkout: React.FC = () => {
                                         type="text"
                                         inputMode="numeric"
                                         placeholder="1234 5678 9012 3456"
-                                        value={form.cardNumber}
-                                        onChange={e => handleChange('cardNumber', e.target.value)}
+                                        value={cardForm.cardNumber}
+                                        onChange={e => handleCardChange('cardNumber', e.target.value)}
                                         className={inputCls(!!errors.cardNumber) + ' font-mono tracking-widest'}
                                     />
                                 </Field>
@@ -295,8 +341,8 @@ export const Checkout: React.FC = () => {
                                     <input
                                         type="text"
                                         placeholder="ION POPESCU"
-                                        value={form.cardHolder}
-                                        onChange={e => handleChange('cardHolder', e.target.value.toUpperCase())}
+                                        value={cardForm.cardHolder}
+                                        onChange={e => handleCardChange('cardHolder', e.target.value.toUpperCase())}
                                         className={inputCls(!!errors.cardHolder) + ' uppercase tracking-widest'}
                                     />
                                 </Field>
@@ -305,8 +351,8 @@ export const Checkout: React.FC = () => {
                                         type="text"
                                         inputMode="numeric"
                                         placeholder="MM/YY"
-                                        value={form.expiry}
-                                        onChange={e => handleChange('expiry', e.target.value)}
+                                        value={cardForm.expiry}
+                                        onChange={e => handleCardChange('expiry', e.target.value)}
                                         className={inputCls(!!errors.expiry) + ' font-mono'}
                                     />
                                 </Field>
@@ -315,10 +361,10 @@ export const Checkout: React.FC = () => {
                                         type="password"
                                         inputMode="numeric"
                                         placeholder="•••"
-                                        value={form.cvv}
+                                        value={cardForm.cvv}
                                         onFocus={() => setFlipped(true)}
                                         onBlur={() => setFlipped(false)}
-                                        onChange={e => handleChange('cvv', e.target.value)}
+                                        onChange={e => handleCardChange('cvv', e.target.value)}
                                         className={inputCls(!!errors.cvv) + ' font-mono tracking-widest'}
                                     />
                                 </Field>
@@ -386,29 +432,3 @@ export const Checkout: React.FC = () => {
         </div>
     );
 };
-
-/* ─── Helper components ─── */
-function Field({
-                   label, icon, error, children, className = ''
-               }: { label: string; icon: React.ReactNode; error?: string; children: React.ReactNode; className?: string }) {
-    return (
-        <div className={className}>
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-blue-200/70 uppercase tracking-wide mb-1.5">
-                <span className="text-[#00c6ff]">{icon}</span>{label}
-            </label>
-            {children}
-            {error && <p className="text-red-400 text-[11px] mt-1">{error}</p>}
-        </div>
-    );
-}
-
-function inputCls(hasError: boolean) {
-    return [
-        'w-full px-4 py-2.5 rounded-xl text-sm bg-white/5 border',
-        'text-white placeholder-white/30',
-        'focus:outline-none focus:ring-2 focus:ring-[#00c6ff]/50 transition-all duration-200',
-        hasError
-            ? 'border-red-400 focus:ring-red-400/40'
-            : 'border-white/10 focus:border-[#00c6ff]',
-    ].join(' ');
-}

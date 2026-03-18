@@ -4,7 +4,7 @@ export const Hero: React.FC = () => {
     const { t } = useTranslation();
 
     return (
-        <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-host-gradient animate-gradient-x">
+        <div className="relative min-h-screen pt-20 md:pt-24 flex items-center justify-center overflow-hidden bg-host-gradient animate-gradient-x">
             {/* Fluid Background Effects */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
                 {/* Large textured blobs for "water depth" feel */}

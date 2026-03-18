@@ -14,17 +14,15 @@ import {
     DropdownMenu,
     DropdownItem,
     DropdownLabel,
-    DropdownDivider,
 } from '../components/ui/Dropdown';
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
-import { NotificationBell } from '../components/NotificationBell';
+import { Logo } from '../components/Logo';
 
 import {
     SunIcon,
     MoonIcon,
     MagnifyingGlassIcon,
     ShoppingCartIcon,
-    ChatBubbleOvalLeftIcon,
     Bars3Icon,
     UserCircleIcon,
     CreditCardIcon,
@@ -45,11 +43,11 @@ import {
    ══════════════════════════════════════════════════════════════ */
 
 const Navbar: React.FC<{ children: React.ReactNode; className?: string }> = ({
-                                                                                 children,
-                                                                                 className,
-                                                                             }) => (
-    <nav className={clsx('container mx-auto px-6 py-4', className)}>
-        <div className="relative flex items-center">{children}</div>
+    children,
+    className,
+}) => (
+    <nav className={clsx('container mx-auto px-4 py-4 sm:px-6', className)}>
+        <div className="relative flex items-center justify-between gap-3">{children}</div>
     </nav>
 );
 
@@ -90,7 +88,7 @@ const NavbarItem: React.FC<{
         <button
             onClick={handleClick}
             className={clsx(
-                'text-sm font-bold uppercase tracking-wide transition-colors duration-200 relative py-1 bg-transparent border-none cursor-pointer',
+                'text-sm font-bold uppercase tracking-wide transition-colors duration-200 relative py-1 bg-transparent cursor-pointer',
                 isActive
                     ? 'text-host-cyan'
                     : 'text-gray-700 dark:text-gray-300 hover:text-host-cyan',
@@ -123,7 +121,7 @@ const CartBadge: React.FC = () => {
         >
             <ShoppingCartIcon className="w-5 h-5" />
             {totalItems > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-lg">
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center">
                     {totalItems}
                 </span>
             )}
@@ -144,12 +142,6 @@ const UserAvatarDropdown: React.FC = () => {
 
     const go = (path: string) => {
         navigate(path);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    const handleLogout = () => {
-        logout();
-        navigate('/');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -252,7 +244,7 @@ const UserAvatarDropdown: React.FC = () => {
 
             <DropdownMenu anchor="right" className="translate-x-2">
                 {/* Header */}
-                <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/60">
+                <div className="px-4 py-3">
                     <p className="text-sm font-bold text-gray-800 dark:text-white">{user.name}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{user.email}</p>
                     <span className="mt-1 inline-block text-[10px] font-bold uppercase tracking-widest text-host-cyan bg-host-cyan/10 px-2 py-0.5 rounded-full">
@@ -261,9 +253,7 @@ const UserAvatarDropdown: React.FC = () => {
                 </div>
 
                 {roleItems}
-
-                <DropdownDivider />
-                <DropdownItem onClick={handleLogout} destructive>
+                <DropdownItem onClick={logout} destructive>
                     <ArrowRightStartOnRectangleIcon className="w-4 h-4" />
                     {t('header.logout', { defaultValue: 'Sign out' })}
                 </DropdownItem>
@@ -288,7 +278,7 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick, onS
     const navigate = useNavigate();
     const location = useLocation();
 
-    /* ── Scroll-based hide / show ── */
+    /* ── Scroll-based hide / show ─────────────────────── */
     const [hidden, setHidden] = React.useState(false);
     const lastScrollY = React.useRef(0);
 
@@ -302,7 +292,7 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick, onS
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    /* ── Center nav items (role-based) ── */
+    /* ── Center nav items (role-based) ────────────────── */
     const navItems = user
         ? [
             ...(user.role === 'student'
@@ -315,6 +305,7 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick, onS
             ...(user.role === 'coach'
                 ? [
                     { label: t('header.dashboard'), to: '/coach' },
+                    { label: t('header.courses'), to: '/courses' },
                     { label: t('header.students'), to: '/students' },
                 ]
                 : []),
@@ -342,26 +333,28 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick, onS
     return (
         <header
             className={clsx(
-                'fixed inset-x-0 top-0 z-40 transition-transform duration-300 bg-white dark:bg-gray-900',
-                hidden ? '-translate-y-full' : 'translate-y-0'
+                'fixed inset-x-0 top-0 z-50 w-full bg-[#071a33] transition-transform duration-300',
+                hidden ? '-translate-y-full' : 'translate-y-0',
             )}
         >
             <Navbar>
-                {/* ── LEFT: Logo ── */}
-                <NavbarSection className="flex-1 min-w-0 cursor-pointer">
-                    <div className="flex items-center" onClick={() => navigateAndScroll('/')}>
-                        <img
-                            src="https://atlantisswim.md/wp-content/uploads/2025/08/cropped-asat-03-scaled-1-e1755890850322.png"
-                            alt="Atlantis SwimSchool"
-                            className="h-10 w-10 mr-2 object-contain"
+                {/* ── LEFT: Logo ──────────────────────────────── */}
+                <NavbarSection className="flex-1 min-w-0 max-w-[60%] cursor-pointer lg:max-w-none">
+                    <div
+                        className="flex min-w-0 items-center"
+                        onClick={() => navigateAndScroll('/')}
+                    >
+                        <Logo
+                            className="min-w-0 max-w-full gap-2 lg:gap-3"
+                            iconClassName="h-8 w-8 shrink-0 lg:h-10 lg:w-10"
+                            titleClassName="hidden truncate whitespace-nowrap text-sm text-white md:inline-flex lg:text-2xl"
+                            subtitleClassName="hidden truncate whitespace-nowrap text-sm text-host-cyan md:inline-flex lg:text-2xl"
+                            textClassName="hidden min-w-0 gap-1 md:flex lg:gap-2"
                         />
-                        <span className="text-2xl font-extrabold text-gray-900 dark:text-white tracking-wider">
-                            ATLANTIS <span className="text-host-cyan">SWIMSCHOOL</span>
-                        </span>
                     </div>
                 </NavbarSection>
 
-                {/* ── CENTER: Nav Links ── */}
+                {/* ── CENTER: Nav Links (absolute-centered, desktop only) ── */}
                 <NavbarSection className="hidden lg:flex absolute inset-x-0 justify-center pointer-events-none">
                     <div className="flex items-center space-x-10 pointer-events-auto">
                         {navItems.map((item) => (
@@ -375,47 +368,41 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick, onS
                     </div>
                 </NavbarSection>
 
-                {/* ── RIGHT: Actions (desktop) ── */}
+                {/* ── RIGHT: Actions (desktop) ────────────────── */}
                 <NavbarSection className="hidden lg:flex flex-1 items-center justify-end space-x-2">
                     {/* Search */}
                     <button
                         onClick={onSearchClick}
-                        className="p-2 text-gray-600 dark:text-gray-300 hover:text-host-cyan transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                        className="rounded-full p-2 text-slate-200 transition-colors hover:bg-white/10 hover:text-host-cyan"
                     >
                         <MagnifyingGlassIcon className="w-5 h-5" />
                     </button>
 
-                    {/* Cart / Chat */}
-                    {user?.role === 'coach' ? (
-                        <button
-                            onClick={() => navigateAndScroll('/coach/chat')}
-                            className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-host-cyan transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-                            title="Mesaje"
-                        >
-                            <ChatBubbleOvalLeftIcon className="w-5 h-5" />
-                        </button>
-                    ) : (
-                        <CartBadge />
-                    )}
+                    {/* Cart */}
+                    <CartBadge />
 
-                    {user && <NotificationBell />}
+                    {/* Language Switcher */}
                     <LanguageSwitcher />
 
-                    {/* Theme Toggle */}
+                    {/* Dark Mode Toggle */}
                     <button
                         onClick={toggleTheme}
-                        className="p-2 text-gray-600 dark:text-gray-300 hover:text-host-cyan transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                        className="rounded-full p-2 text-slate-200 transition-colors hover:bg-white/10 hover:text-host-cyan"
                     >
-                        {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
+                        {theme === 'light' ? (
+                            <MoonIcon className="w-5 h-5" />
+                        ) : (
+                            <SunIcon className="w-5 h-5" />
+                        )}
                     </button>
 
-                    {/* Avatar / Login */}
+                    {/* User Avatar / Login */}
                     {user ? (
                         <UserAvatarDropdown />
                     ) : (
                         <button
                             onClick={() => navigateAndScroll('/login')}
-                            className="flex items-center gap-2 px-6 py-2 rounded-full bg-host-cyan hover:bg-cyan-500 text-white font-bold text-sm uppercase tracking-wide shadow-sm hover:shadow-md transition-all duration-200 border-none"
+                            className="flex items-center gap-2 px-6 py-2 rounded-full bg-host-cyan hover:bg-cyan-500 text-white font-bold text-sm uppercase tracking-wide transition-all duration-200"
                         >
                             <ArrowRightEndOnRectangleIcon className="w-4 h-4" />
                             {t('header.connect', { defaultValue: 'Conectare' })}
@@ -423,19 +410,19 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick, onS
                     )}
                 </NavbarSection>
 
-                {/* ── MOBILE Actions ── */}
-                <NavbarSection className="lg:hidden flex items-center space-x-4">
+                {/* ── MOBILE: Menu + Search buttons ────────────── */}
+                <NavbarSection className="lg:hidden shrink-0 items-center justify-end space-x-1 sm:space-x-2">
                     <button
                         onClick={onSearchClick}
-                        className="text-gray-700 dark:text-white hover:text-host-cyan transition-colors"
+                        className="rounded-full p-2 text-white transition-colors hover:bg-white/10 hover:text-host-cyan"
                     >
-                        <MagnifyingGlassIcon className="w-6 h-6" />
+                        <MagnifyingGlassIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                     <button
                         onClick={onMenuClick}
-                        className="text-gray-700 dark:text-white hover:text-host-cyan transition-colors"
+                        className="rounded-full p-2 text-white transition-colors hover:bg-white/10 hover:text-host-cyan"
                     >
-                        <Bars3Icon className="w-7 h-7" />
+                        <Bars3Icon className="w-6 h-6 sm:w-7 sm:h-7" />
                     </button>
                 </NavbarSection>
             </Navbar>
