@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Hero } from '../components/Hero';
@@ -6,6 +6,7 @@ import { CTAButton } from '../components/CTAButton';
 import { FAQ } from '../components/FAQ';
 import { subscriptionPlans, mockCoaches } from '../data/mockData';
 import { Users, GraduationCap, Trophy, Mail, Star, Twitter, Linkedin } from 'lucide-react';
+import { SubscriptionInfoModal } from '../components/SubscriptionInfoModal';
 
 /** Hook: observes elements with class "scroll-reveal" and adds "revealed" when visible */
 function useScrollReveal() {
@@ -40,6 +41,9 @@ export const Landing: React.FC = () => {
     const { t } = useTranslation();
     const revealRef = useScrollReveal();
     const navigate = useNavigate();
+
+    const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+    const selectedPlan = subscriptionPlans.find(p => p.id === selectedPlanId);
 
     const services = [
         { title: t('landing.services.expert_coaches.title'), desc: t('landing.services.expert_coaches.desc'), icon: Trophy },
@@ -104,8 +108,10 @@ export const Landing: React.FC = () => {
 
                             return (
                                 <div key={plan.id} className={`scroll-reveal reveal-up stagger-${Math.min(idx + 1, 6)}`}>
-                                    <div className="bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 hover:-translate-y-1 transition-all duration-300 hover:shadow-xl hover:border-host-cyan/50 relative overflow-hidden h-full flex flex-col">
-                                        {/* Discount badge */}
+                                    <div
+                                        onClick={() => setSelectedPlanId(plan.id)}
+                                        className="relative cursor-pointer bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 hover:-translate-y-1 transition-all duration-300 hover:shadow-xl hover:border-host-cyan/50 overflow-hidden h-full flex flex-col"
+                                    >
                                         {discount && (
                                             <div className="absolute top-4 right-4">
                                                 <span className="bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
@@ -114,25 +120,23 @@ export const Landing: React.FC = () => {
                                             </div>
                                         )}
 
-                                        {/* Category badge */}
-                                        <div className="mb-4">
-                                            <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${cat.color}`}>
-                                                <span>{cat.icon}</span>
-                                                <span>{cat.label}</span>
-                                            </span>
+                                        <div className="flex justify-start items-start mb-4">
+                                            <div className="mb-0">
+                                                <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${cat.color}`}>
+                                                    <span>{cat.icon}</span>
+                                                    <span>{cat.label}</span>
+                                                </span>
+                                            </div>
                                         </div>
 
-                                        {/* Plan name */}
                                         <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-3 pr-16">{t(`landing.plans.${plan.id}.name`)}</h3>
 
-                                        {/* Info */}
                                         <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
                                             <span>◷ {plan.sessions} {t('landing.subscriptions.sessions')}</span>
                                             <span className="text-gray-300 dark:text-gray-600">·</span>
                                             <span>{t(`landing.plans.${plan.id}.duration`)}</span>
                                         </div>
 
-                                        {/* Price */}
                                         <div className="mt-auto">
                                             <div className="flex items-baseline space-x-3 mb-5">
                                                 {plan.discountPrice ? (
@@ -149,10 +153,11 @@ export const Landing: React.FC = () => {
                                                 )}
                                             </div>
 
-                                            {/* Button */}
-                                            <CTAButton onClick={() => navigate('/login')}>
-                                                <span className="mr-2">🛒</span>
-                                                <span>{t('landing.subscriptions.add_to_cart')}</span>
+                                            <CTAButton onClick={(event) => {
+                                                event.stopPropagation();
+                                                navigate('/login');
+                                            }}>
+                                                <span>ADAUGĂ ÎN COȘ</span>
                                             </CTAButton>
                                         </div>
                                     </div>
@@ -343,6 +348,22 @@ export const Landing: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {selectedPlan && (
+                <SubscriptionInfoModal
+                    isOpen={!!selectedPlanId}
+                    onClose={() => setSelectedPlanId(null)}
+                    planId={selectedPlan.id}
+                    name={t(`landing.plans.${selectedPlan.id}.name`)}
+                    price={selectedPlan.price}
+                    discountPrice={selectedPlan.discountPrice}
+                    category={selectedPlan.category}
+                    onSelect={() => {
+                        setSelectedPlanId(null);
+                        navigate('/login');
+                    }}
+                />
+            )}
         </div>
     );
 };

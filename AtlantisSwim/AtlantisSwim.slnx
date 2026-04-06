@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="AtlantisSwim.Api/AtlantisSwim.Api.csproj" />
+  <Project Path="AtlantisSwim.BusinessLayer/AtlantisSwim.BusinessLayer.csproj" />
+  <Project Path="AtlantisSwim.DataAccess/AtlantisSwim.DataAccess.csproj" />
+  <Project Path="AtlantisSwim.Domain/AtlantisSwim.Domain.csproj" />
+</Solution>

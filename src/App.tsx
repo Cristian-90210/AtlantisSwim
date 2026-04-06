@@ -20,12 +20,15 @@ import { StudentProfile } from './pages/student/StudentProfile';
 import { StudentSubscription } from './pages/student/StudentSubscription';
 import { StudentSchedule } from './pages/student/StudentSchedule';
 import { StudentResults } from './pages/student/StudentResults';
+import { StudentSettings } from './pages/student/StudentSettings';
+import { StudentChat } from './pages/student/StudentChat';
 import { CoachDashboard } from './pages/CoachDashboard';
 import { CoachProfile } from './pages/coach/CoachProfile';
 import { CoachTrainingSchedule } from './pages/coach/CoachTrainingSchedule';
 import { CoachAttendance } from './pages/coach/CoachAttendance';
 import { CoachStudentResults } from './pages/coach/CoachStudentResults';
 import { CoachChat } from './pages/coach/CoachChat';
+import { CoachSettings } from './pages/coach/CoachSettings';
 import { AdminProfile } from './pages/AdminProfile';
 import { UsersManagement } from './pages/admin/Users';
 import { Reservations } from './pages/admin/Reservations';
@@ -38,6 +41,7 @@ import { Unauthorized } from './pages/Unauthorized';
 import { Forbidden } from './pages/Forbidden';
 import { InternalServerError } from './pages/InternalServerError';
 import { ServerStatus } from './pages/ServerStatus';
+import { Attendance } from './pages/Attendance';
 
 // Protected Route Wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
@@ -98,6 +102,21 @@ function App() {
                         <StudentResults />
                       </ProtectedRoute>
                     } />
+                    <Route path="student/settings" element={
+                      <ProtectedRoute allowedRoles={['student']}>
+                        <StudentSettings />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="student/chat" element={
+                      <ProtectedRoute allowedRoles={['student']}>
+                        <StudentChat />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="prezenta" element={
+                      <ProtectedRoute allowedRoles={['student']}>
+                        <Attendance />
+                      </ProtectedRoute>
+                    } />
                     <Route path="coach" element={
                       <ProtectedRoute allowedRoles={['coach']}>
                         <CoachDashboard />
@@ -126,6 +145,11 @@ function App() {
                     <Route path="coach/chat" element={
                       <ProtectedRoute allowedRoles={['coach']}>
                         <CoachChat />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="coach/settings" element={
+                      <ProtectedRoute allowedRoles={['coach']}>
+                        <CoachSettings />
                       </ProtectedRoute>
                     } />
                     <Route path="admin" element={

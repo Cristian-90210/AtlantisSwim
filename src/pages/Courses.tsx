@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { PageHeader } from '../components/PageHeader';
 import { CTAButton } from '../components/CTAButton';
 import { CartToast } from '../components/CartToast';
 import { subscriptionPlans } from '../data/mockData';
-import { Clock, Tag, Zap, Car, User, ShoppingCart, Check } from 'lucide-react';
+import { Clock, Tag, Zap, Car, User } from 'lucide-react';
+import { SubscriptionInfoModal } from '../components/SubscriptionInfoModal';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,6 +20,9 @@ export const Courses: React.FC = () => {
         individual: { label: 'Individual', icon: User, color: 'text-amber-400' },
         transport: { label: 'Cu Transport', icon: Car, color: 'text-green-400' },
     };
+
+    const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
+    const selectedPlan = subscriptionPlans.find(p => p.id === selectedPlanId);
 
     return (
         <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
@@ -40,26 +44,29 @@ export const Courses: React.FC = () => {
                             return (
                                 <div
                                     key={plan.id}
-                                    className="relative bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group"
+                                    onClick={() => setSelectedPlanId(plan.id)}
+                                    className="relative cursor-pointer bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group flex flex-col h-full"
                                 >
                                     {/* Category badge */}
-                                    <div className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-4 bg-gray-100 dark:bg-gray-700 ${cat.color}`}>
-                                        <CatIcon size={12} />
-                                        <span>{cat.label}</span>
+                                    <div className="flex justify-start items-start mb-4">
+                                        <div className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-700 ${cat.color}`}>
+                                            <CatIcon size={12} />
+                                            <span>{cat.label}</span>
+                                        </div>
                                     </div>
 
                                     {/* Savings badge */}
                                     {savings > 0 && (
-                                        <div className="absolute top-4 right-4 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg animate-pulse">
+                                        <div className="absolute top-4 right-4 bg-green-500 text-white text-[10px] font-extrabold px-3 py-1 rounded-full shadow-sm">
                                             -{savings} MDL
                                         </div>
                                     )}
 
-                                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-3 leading-tight">
+                                    <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-3 pr-8 leading-tight">
                                         {plan.name}
                                     </h3>
 
-                                    <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                    <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
                                         <Clock size={14} />
                                         <span>{plan.sessions} ședințe</span>
                                         <span className="text-gray-300 dark:text-gray-600">•</span>
@@ -69,55 +76,53 @@ export const Courses: React.FC = () => {
                                     {/* Price */}
                                     <div className="mt-auto">
                                         {plan.discountPrice ? (
-                                            <div className="flex items-end space-x-3">
+                                            <div className="flex items-baseline space-x-3 mb-5">
                                                 <span className="text-3xl font-extrabold text-host-cyan">
                                                     {plan.discountPrice}
                                                 </span>
-                                                <span className="text-lg text-gray-400 line-through mb-0.5">
+                                                <span className="text-lg text-gray-400 line-through">
                                                     {plan.price}
                                                 </span>
-                                                <span className="text-sm text-gray-500 mb-1">MDL</span>
+                                                <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">MDL</span>
                                             </div>
                                         ) : (
-                                            <div className="flex items-end space-x-2">
+                                            <div className="flex items-baseline space-x-2 mb-5">
                                                 <span className="text-3xl font-extrabold text-host-cyan">
                                                     {plan.price}
                                                 </span>
-                                                <span className="text-sm text-gray-500 mb-1">MDL</span>
+                                                <span className="text-sm font-bold text-gray-500 uppercase tracking-widest">MDL</span>
                                             </div>
                                         )}
+
+                                        {/* Add to cart button */}
+                                        <CTAButton
+                                            onClick={(event) => {
+                                                event.stopPropagation();
+                                                if (!isAuthenticated) {
+                                                    navigate('/login', { state: { from: location } });
+                                                    return;
+                                                }
+                                                addItem({
+                                                    id: plan.id,
+                                                    name: plan.name,
+                                                    price: plan.price,
+                                                    discountPrice: plan.discountPrice ?? undefined,
+                                                });
+                                            }}
+                                            style={items.some(i => i.id === plan.id) ? {
+                                                borderRadius: '9999px',
+                                                background: 'linear-gradient(145deg, #22c55e 0%, #16a34a 100%)',
+                                                minHeight: '44px',
+                                            } : undefined}
+                                            className="w-full"
+                                        >
+                                            {items.some(i => i.id === plan.id) ? (
+                                                <><span>ADĂUGAT ({items.find(i => i.id === plan.id)?.quantity})</span></>
+                                            ) : (
+                                                <><span>ADAUGĂ ÎN COȘ</span></>
+                                            )}
+                                        </CTAButton>
                                     </div>
-
-                                    {/* Add to cart button */}
-                                    <CTAButton
-                                        onClick={(event) => {
-                                            event.stopPropagation();
-
-                                            if (!isAuthenticated) {
-                                                navigate('/login', { state: { from: location } });
-                                                return;
-                                            }
-
-                                            addItem({
-                                                id: plan.id,
-                                                name: plan.name,
-                                                price: plan.price,
-                                                discountPrice: plan.discountPrice ?? undefined,
-                                            });
-                                        }}
-                                        style={items.some(i => i.id === plan.id) ? {
-                                            borderRadius: '9999px',
-                                            background: 'linear-gradient(145deg, #22c55e 0%, #16a34a 100%)',
-                                            minHeight: '44px',
-                                        } : undefined}
-                                        className="mt-4"
-                                    >
-                                        {items.some(i => i.id === plan.id) ? (
-                                            <><Check size={16} className="mr-2" /><span>Adăugat în coș ({items.find(i => i.id === plan.id)?.quantity})</span></>
-                                        ) : (
-                                            <><ShoppingCart size={16} className="mr-2" /><span>ADD TO CART</span></>
-                                        )}
-                                    </CTAButton>
                                 </div>
                             );
                         })}
@@ -125,6 +130,31 @@ export const Courses: React.FC = () => {
                 </div>
             </div>
             <CartToast />
+            
+            {selectedPlan && (
+                <SubscriptionInfoModal
+                    isOpen={!!selectedPlanId}
+                    onClose={() => setSelectedPlanId(null)}
+                    planId={selectedPlan.id}
+                    name={selectedPlan.name}
+                    price={selectedPlan.price}
+                    discountPrice={selectedPlan.discountPrice}
+                    category={categoryLabels[selectedPlan.category]?.label || 'Standard'}
+                    onSelect={() => {
+                        setSelectedPlanId(null);
+                        if (!isAuthenticated) {
+                            navigate('/login', { state: { from: location } });
+                            return;
+                        }
+                        addItem({
+                            id: selectedPlan.id,
+                            name: selectedPlan.name,
+                            price: selectedPlan.price,
+                            discountPrice: selectedPlan.discountPrice ?? undefined,
+                        });
+                    }}
+                />
+            )}
         </div>
     );
 };

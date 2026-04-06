@@ -83,6 +83,29 @@ appsettings.Production.json
 appsettings.json
 
 #################################
+# .NET / C# backend
+#################################
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+publish/
+*.pubxml
+*.pubxml.user
+*.publishsettings
+local.settings.json
+*.pfx
+*.p12
+*.dbmdl
+*.jfm
+launchSettings.json
+*.DotSettings
+
+#################################
 # Misc
 #################################
 .DS_Store

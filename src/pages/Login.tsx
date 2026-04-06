@@ -44,14 +44,20 @@ export const Login: React.FC = () => {
     // Auto-redirect if already logged in
     React.useEffect(() => {
         if (isAuthenticated && user) {
+            const roleHome = user.role === 'admin' ? '/admin' : user.role === 'coach' ? '/coach' : '/student';
+
+            // Only use redirectPath if it belongs to the user's role (or is a shared route)
             if (redirectPath) {
-                navigate(redirectPath, { replace: true });
-                return;
+                const isRoleMatch =
+                    redirectPath.startsWith(`/${user.role}`) ||
+                    (!redirectPath.startsWith('/student') && !redirectPath.startsWith('/coach') && !redirectPath.startsWith('/admin'));
+                if (isRoleMatch) {
+                    navigate(redirectPath, { replace: true });
+                    return;
+                }
             }
 
-            if (user.role === 'admin') navigate('/admin', { replace: true });
-            else if (user.role === 'coach') navigate('/coach', { replace: true });
-            else navigate('/student', { replace: true });
+            navigate(roleHome, { replace: true });
         }
     }, [isAuthenticated, user, navigate, redirectPath]);
 

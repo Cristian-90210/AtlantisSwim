@@ -15,11 +15,11 @@ import {
     Trophy,
     ClipboardList,
     Megaphone,
-    Search,
     ShoppingCart,
     Languages,
     Sun,
     Moon,
+    Settings,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -30,10 +30,9 @@ import clsx from 'clsx';
 interface SideMenuProps {
     isOpen: boolean;
     onClose: () => void;
-    onSearchClick: () => void;
 }
 
-export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSearchClick }) => {
+export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
     const { t, i18n } = useTranslation();
     const { logout, user } = useAuth();
     const { totalItems } = useCart();
@@ -47,10 +46,12 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSearchCli
         ? [
             ...(user.role === 'student' ? [
                 { to: '/student', label: t('header.dashboard'), icon: LayoutDashboard },
+                { to: '/prezenta', label: t('header.attendance', { defaultValue: 'Prezență' }), icon: ClipboardList },
                 { to: '/student/profile', label: t('dropdown.my_profile', { defaultValue: 'My Profile' }), icon: UserCircle },
                 { to: '/student/subscription', label: t('dropdown.my_subscription', { defaultValue: 'My Subscription' }), icon: CreditCard },
                 { to: '/student/schedule', label: t('dropdown.schedule', { defaultValue: 'Schedule' }), icon: Calendar },
                 { to: '/student/results', label: t('dropdown.results', { defaultValue: 'Results' }), icon: Trophy },
+                { to: '/student/settings', label: t('dropdown.settings', { defaultValue: 'Settings' }), icon: Settings },
             ] : []),
             ...(user.role === 'coach' ? [
                 { to: '/coach', label: t('header.dashboard'), icon: LayoutDashboard },
@@ -58,6 +59,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSearchCli
                 { to: '/coach/schedule', label: t('dropdown.training_schedule', { defaultValue: 'Training Schedule' }), icon: Calendar },
                 { to: '/coach/attendance', label: t('dropdown.attendance', { defaultValue: 'Attendance' }), icon: ClipboardList },
                 { to: '/coach/results', label: t('dropdown.student_results', { defaultValue: 'Student Results' }), icon: Trophy },
+                { to: '/coach/settings', label: t('dropdown.settings', { defaultValue: 'Settings' }), icon: Settings },
             ] : []),
             ...(user.role === 'admin' ? [
                 { to: '/admin', label: t('header.dashboard'), icon: LayoutDashboard },
@@ -79,10 +81,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSearchCli
     const actionButtonClassName =
         'flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-100 transition-colors duration-300 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300';
 
-    const handleSearchClick = () => {
-        onSearchClick();
-        onClose();
-    };
 
     const handleCartClick = () => {
         navigate('/cart');
@@ -182,17 +180,6 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose, onSearchCli
                     <div className="my-4 border-t border-white/10" />
 
                     <div className="space-y-1.5" aria-label="Acțiuni rapide">
-                        <button
-                            type="button"
-                            onClick={handleSearchClick}
-                            className={actionButtonClassName}
-                            aria-label="Deschide căutarea"
-                        >
-                            <span className="flex items-center gap-3">
-                                <Search size={18} />
-                                <span>{t('header.search', { defaultValue: 'Search' })}</span>
-                            </span>
-                        </button>
 
                         <button
                             type="button"

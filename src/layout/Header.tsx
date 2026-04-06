@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { Menu, Sun, Moon, LogOut, Search, LogIn, ShoppingCart } from 'lucide-react';
+import { Menu, Sun, Moon, LogOut, LogIn, ShoppingCart } from 'lucide-react';
 import { clsx } from 'clsx';
 
 import { LanguageSwitcher } from '../components/LanguageSwitcher';
@@ -41,10 +41,9 @@ const CartIcon: React.FC = () => {
 
 interface HeaderProps {
     onMenuClick: () => void;
-    onSearchClick: () => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onMenuClick, onSearchClick }) => {
+export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     const { t } = useTranslation();
     const { user, logout } = useAuth();
     const { theme, toggleTheme } = useTheme();
@@ -104,6 +103,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, onSearchClick }) =>
             ...(user.role === 'student' ? [
                 { label: t('header.dashboard'), to: '/student' },
                 { label: t('header.courses'), to: '/courses' },
+                { label: t('header.attendance', { defaultValue: 'Prezență' }), to: '/prezenta' },
                 { label: t('header.our_team'), to: '/coaches' },
             ] : []),
             ...(user.role === 'coach' ? [
@@ -168,12 +168,6 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, onSearchClick }) =>
 
                     {/* Right: Actions */}
                     <div className="hidden lg:flex items-center justify-end flex-1 space-x-4">
-                        <button
-                            onClick={onSearchClick}
-                            className="p-2 text-gray-600 dark:text-gray-300 hover:text-host-cyan transition-colors rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-                        >
-                            <Search size={20} />
-                        </button>
 
                         {user?.role !== 'coach' && <CartIcon />}
 
@@ -206,9 +200,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick, onSearchClick }) =>
 
                     {/* Mobile Menu Button */}
                     <div className="lg:hidden flex items-center space-x-4">
-                        <button onClick={onSearchClick} className="text-gray-700 dark:text-white hover:text-host-cyan transition-colors">
-                            <Search size={24} />
-                        </button>
+
                         <button onClick={onMenuClick} className="text-gray-700 dark:text-white hover:text-host-cyan transition-colors">
                             <Menu size={28} />
                         </button>

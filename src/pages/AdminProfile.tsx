@@ -233,21 +233,18 @@ export const AdminProfile: React.FC = () => {
                 )}
 
                 {/* Tab Navigation */}
-                <div className="flex flex-wrap gap-4 justify-center mt-16 mb-8">
+                <div className="flex flex-wrap gap-2 justify-center mt-16 mb-8">
                     {tabs.map(tab => (
-                        <button
+                        <Button
                             key={tab.key}
+                            variant="tab"
+                            active={activeTab === tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className={clsx(
-                                "px-4 py-3 rounded-xl text-sm font-bold uppercase tracking-wide transition-all duration-300 whitespace-nowrap flex items-center space-x-2",
-                                activeTab === tab.key
-                                    ? "bg-host-gradient-btn text-white shadow-lg scale-105 ring-2 ring-blue-400/20"
-                                    : "border bg-blue-50/30 dark:bg-gray-800/80 border-blue-100/50 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-700 hover:text-host-blue dark:hover:text-host-blue hover:border-host-blue/30 dark:hover:border-host-blue/30 hover:shadow-md hover:-translate-y-0.5"
-                            )}
+                            className="whitespace-nowrap"
                         >
                             <tab.icon size={16} />
                             <span>{tab.label}</span>
-                        </button>
+                        </Button>
                     ))}
                 </div>
 
