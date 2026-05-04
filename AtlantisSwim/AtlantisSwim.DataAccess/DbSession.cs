@@ -1,3 +1,4 @@
+using AtlantisSwim.Domain.Entities.Chat;
 using AtlantisSwim.Domain.Entities.Course;
 using AtlantisSwim.Domain.Entities.Student;
 using AtlantisSwim.Domain.Entities.SwimmingService;
@@ -25,6 +26,7 @@ namespace AtlantisSwim.DataAccess
         public DbSet<CourseImg> CourseImgs { get; set; }
         public DbSet<SwimmingServiceData> SwimmingServices { get; set; }
         public DbSet<StudentData> Students { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
 
         // ── Configuration ────────────────────────────────────────────────────────
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

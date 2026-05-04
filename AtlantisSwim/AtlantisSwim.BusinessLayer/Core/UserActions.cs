@@ -16,14 +16,10 @@ namespace AtlantisSwim.BusinessLayer.Core
                 (x.UserName == udata.CredentialType || x.Email == udata.CredentialType) &&
                 x.Password == udata.Password);
         }
-        internal string UserTokenGeneration(UserLoginDto udata)
+        internal string UserTokenGeneration(UserData user)
         {
-
             var token = new TokenService();
-
-            var userToken = token.GenerateToken();
-
-            return userToken;
+            return token.GenerateToken(user.Id, user.Email, user.Role);
         }
         internal ActionResponce UserRegDataValidationAction(UserRegisterDto uReg)
         {

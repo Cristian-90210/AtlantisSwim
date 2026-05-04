@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState } from 'react';
 import { UserRole } from '../types';
 import type { User } from '../types';
-import { mockUserAccounts } from '../data/mockData';
+import axiosInstance from '../api/axiosInstance';
 
 interface AuthContextType {
     user: User | null;
-    login: (email: string, password: string) => boolean;
+    login: (email: string, password: string) => Promise<boolean>;
     logout: () => void;
     isAuthenticated: boolean;
     isAdmin: boolean;
@@ -19,22 +19,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return saved ? JSON.parse(saved) : null;
     });
 
-    const login = (email: string, password: string): boolean => {
-        const account = mockUserAccounts.find(
-            (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        );
-        if (!account) return false;
+    const login = async (email: string, password: string): Promise<boolean> => {
+        try {
+            const res = await axiosInstance.post('/session/auth', {
+                credentialType: email,
+                password,
+            });
 
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { password: _pw, ...safeUser } = account;
-        setUser(safeUser);
-        localStorage.setItem('user', JSON.stringify(safeUser));
-        return true;
+            const body = res.data;
+            if (!body.isSuccess || !body.data) return false;
+
+            const data = body.data;
+
+            // Store JWT token for subsequent API calls
+            localStorage.setItem('auth_token', data.token);
+
+            const loggedIn: User = {
+                id:     String(data.id),
+                name:   `${data.firstName} ${data.lastName}`.trim() || data.userName,
+                email:  data.email,
+                role:   data.roleId as UserRole,
+            };
+
+            setUser(loggedIn);
+            localStorage.setItem('user', JSON.stringify(loggedIn));
+            return true;
+        } catch {
+            return false;
+        }
     };
 
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
+        localStorage.removeItem('auth_token');
         localStorage.removeItem('atlantis_cart');
         window.dispatchEvent(new Event('user-logout'));
     };

@@ -34,6 +34,8 @@ import { AdminProfile } from './pages/AdminProfile';
 import { UsersManagement } from './pages/admin/Users';
 import { Reservations } from './pages/admin/Reservations';
 import { Announcements } from './pages/admin/Announcements';
+import { AdminCourses } from './pages/admin/Courses';
+import { AdminServices } from './pages/admin/Services';
 import { Login } from './pages/Login';
 import { CartPage } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
@@ -173,6 +175,16 @@ function App() {
                     <Route path="admin/announcements" element={
                       <ProtectedRoute allowedRoles={[UserRole.Admin]}>
                         <Announcements />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="admin/courses" element={
+                      <ProtectedRoute allowedRoles={[UserRole.Admin]}>
+                        <AdminCourses />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="admin/services" element={
+                      <ProtectedRoute allowedRoles={[UserRole.Admin]}>
+                        <AdminServices />
                       </ProtectedRoute>
                     } />
 

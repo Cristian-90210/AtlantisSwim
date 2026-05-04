@@ -17,7 +17,7 @@ namespace AtlantisSwim.BusinessLayer.Structure
             if (user == null)
                 return new ActionResponce { IsSuccess = false, Message = "Invalid credentials" };
 
-            var token = UserTokenGeneration(udata);
+            var token = UserTokenGeneration(user);
 
             return new ActionResponce
             {
@@ -25,17 +25,20 @@ namespace AtlantisSwim.BusinessLayer.Structure
                 Message   = "Login successful",
                 Data      = new UserAuthResponseDto
                 {
-                    Id       = user.Id,
-                    UserName = user.UserName,
-                    Email    = user.Email,
-                    RoleId   = (int)user.Role,
-                    RoleName = user.Role switch
+                    Id        = user.Id,
+                    UserName  = user.UserName,
+                    FirstName = user.FirstName,
+                    LastName  = user.LastName,
+                    Email     = user.Email,
+                    RoleId    = (int)user.Role,
+                    RoleName  = user.Role switch
                     {
                         UserRole.Student => "Elev",
                         UserRole.Coach   => "Antrenor",
                         UserRole.Admin   => "Admin",
                         _                => user.Role.ToString()
-                    }
+                    },
+                    Token = token
                 }
             };
         }

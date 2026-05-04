@@ -55,7 +55,7 @@ export const AdminProfile: React.FC = () => {
 
     // Student bookings
     const studentBookings = useMemo(() => {
-        if (role !== 'student' || !user) return [];
+        if (role !== UserRole.Student || !user) return [];
         return mockBookings.filter(b => b.studentId === user.id);
     }, [user, role]);
 

@@ -12,6 +12,7 @@ namespace AtlantisSwim.Domain.Entities.Course
         public int Enrolled { get; set; }
         public string Schedule { get; set; } // e.g. "Mon, Wed 18:00"
 
+        public int LevelId { get; set; }
         public CourseLevelData Level { get; set; }
 
         /// <summary>

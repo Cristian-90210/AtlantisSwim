@@ -1,5 +1,7 @@
 import type { Student, Course, Coach, AnyUser, Announcement, SwimmingResult, AttendanceRecord, Message, Subscription, CoachScheduleSlot, SpecialOffer, StudentNote, RecoveryCredit, StudentHealthFlag, ProgressSnapshot, RecoveryRequest } from '../types';
-import { mockStudents, mockCourses, mockCoaches, mockAdmins, mockAnnouncements, mockBookings, mockSwimmingResults, mockAttendance, mockMessages, mockSubscriptions, mockCoachSchedule, mockSpecialOffers, mockStudentNotes, mockRecoveryCredits, mockStudentHealthFlags, mockProgressSnapshots } from '../data/mockData';
+import { UserRole } from '../types';
+import { mockCoaches, mockAnnouncements, mockBookings, mockSwimmingResults, mockAttendance, mockMessages, mockSubscriptions, mockCoachSchedule, mockSpecialOffers, mockStudentNotes, mockRecoveryCredits, mockStudentHealthFlags, mockProgressSnapshots } from '../data/mockData';
+import axiosInstance from '../api/axiosInstance';
 
 // Simulate async API delay
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -31,60 +33,117 @@ const attendanceStore: AttendanceRecord[] = loadFromStorage(ATTENDANCE_STORAGE_K
 const recoveryStore: RecoveryCredit[] = loadFromStorage(RECOVERY_STORAGE_KEY, [...mockRecoveryCredits]);
 const recoveryRequestStore: RecoveryRequest[] = loadFromStorage(RECOVERY_REQUEST_STORAGE_KEY, []);
 
-// ── localStorage-backed student persistence ──
-const STUDENTS_KEY = 'students';
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-function getStoredStudents(): Student[] {
-    const raw = localStorage.getItem(STUDENTS_KEY);
-    if (raw) {
-        try { return JSON.parse(raw); } catch { /* fall through */ }
-    }
-    // Seed localStorage with mock data on first visit
-    localStorage.setItem(STUDENTS_KEY, JSON.stringify(mockStudents));
-    return [...mockStudents];
+function ageFromDob(dob: string): number {
+    const birth = new Date(dob);
+    const now   = new Date();
+    let age     = now.getFullYear() - birth.getFullYear();
+    if (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate())) age--;
+    return age;
 }
 
-function saveStudents(students: Student[]): void {
-    localStorage.setItem(STUDENTS_KEY, JSON.stringify(students));
+function dobFromAge(age: number): string {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - age);
+    return d.toISOString();
 }
+
+function mapApiStudent(s: any): Student {
+    return {
+        id:     String(s.id),
+        name:   `${s.firstName} ${s.lastName}`.trim(),
+        age:    ageFromDob(s.dateOfBirth),
+        email:  s.email,
+        level:  (s.swimmingLevel as Student['level']) || 'Beginner',
+        status: s.isActive ? 'Active' : 'Inactive',
+        role:   UserRole.Student,
+    };
+}
+
+// ── Student Service (real API) ─────────────────────────────────────────────
 
 export const studentService = {
     getAll: async (): Promise<Student[]> => {
-        await delay(300);
-        return getStoredStudents();
+        const res = await axiosInstance.get('/students');
+        return res.data.map(mapApiStudent);
     },
     getById: async (id: string): Promise<Student | undefined> => {
-        await delay(200);
-        return getStoredStudents().find(s => s.id === id);
+        try {
+            const res = await axiosInstance.get(`/students/${id}`);
+            return mapApiStudent(res.data);
+        } catch {
+            return undefined;
+        }
     },
     create: async (student: Student): Promise<Student> => {
-        await delay(400);
-        const students = getStoredStudents();
-        students.push(student);
-        saveStudents(students);
-        return student;
+        const parts    = student.name.trim().split(' ');
+        const firstName = parts[0] ?? '';
+        const lastName  = parts.slice(1).join(' ') || firstName;
+        const res = await axiosInstance.post('/students', {
+            firstName,
+            lastName,
+            email:        student.email,
+            phone:        '',
+            dateOfBirth:  dobFromAge(student.age),
+            swimmingLevel: student.level,
+        });
+        return mapApiStudent(res.data);
     },
     update: async (id: string, updates: Partial<Student>): Promise<Student> => {
-        await delay(400);
-        const students = getStoredStudents();
-        const idx = students.findIndex(s => s.id === id);
-        if (idx === -1) throw new Error('Student not found');
-        students[idx] = { ...students[idx], ...updates };
-        saveStudents(students);
-        return students[idx];
+        const existing = await studentService.getById(id);
+        if (!existing) throw new Error('Student not found');
+        const merged   = { ...existing, ...updates };
+        const parts    = merged.name.trim().split(' ');
+        const firstName = parts[0] ?? '';
+        const lastName  = parts.slice(1).join(' ') || firstName;
+        const res = await axiosInstance.put(`/students/${id}`, {
+            firstName,
+            lastName,
+            email:        merged.email,
+            phone:        '',
+            dateOfBirth:  dobFromAge(merged.age),
+            swimmingLevel: merged.level,
+        });
+        return mapApiStudent(res.data);
     },
     delete: async (id: string): Promise<void> => {
-        await delay(300);
-        const students = getStoredStudents().filter(s => s.id !== id);
-        saveStudents(students);
+        await axiosInstance.delete(`/students/${id}`);
     }
 };
 
+// ── Course Service (real API) ──────────────────────────────────────────────
+
 export const courseService = {
     getAll: async (): Promise<Course[]> => {
-        await delay(500);
-        return [...mockCourses];
-    }
+        const res = await axiosInstance.get('/course/getAll');
+        return res.data.map((c: any): Course => ({
+            id:          String(c.id),
+            title:       c.name,
+            description: c.description,
+            capacity:    c.capacity,
+            enrolled:    c.enrolled,
+            coachId:     '',
+            schedule:    c.schedule ?? '',
+            price:       c.price,
+            level:       (c.level?.name as Course['level']) ?? 'Beginner',
+        }));
+    },
+    getLevels: async (): Promise<{ id: number; name: string }[]> => {
+        const res = await axiosInstance.get('/course/levels');
+        return res.data;
+    },
+    create: async (dto: { name: string; description: string; price: number; capacity: number; schedule: string; levelId: number }) => {
+        const res = await axiosInstance.post('/course', dto);
+        return res.data;
+    },
+    update: async (id: number, dto: { name: string; description: string; price: number; capacity: number; schedule: string; levelId: number }) => {
+        const res = await axiosInstance.put(`/course/${id}`, dto);
+        return res.data;
+    },
+    delete: async (id: number) => {
+        await axiosInstance.delete(`/course/${id}`);
+    },
 };
 
 export const coachService = {
@@ -94,23 +153,36 @@ export const coachService = {
     }
 };
 
+// ── User Service (real API) ────────────────────────────────────────────────
+
 export const userService = {
     getAll: async (): Promise<AnyUser[]> => {
-        await delay(600);
-        // role is already set to the correct UserRole enum value in mock data
-        const students = mockStudents;
-        const coaches  = mockCoaches;
-        const admins   = mockAdmins;
-        return [...students, ...coaches, ...admins];
+        const res = await axiosInstance.get('/users');
+        return res.data.map((u: any): AnyUser => ({
+            id:     String(u.id),
+            name:   `${u.firstName} ${u.lastName}`.trim() || u.userName,
+            email:  u.email,
+            role:   u.roleId as UserRole,
+            status: u.isActive ? 'Active' : 'Inactive',
+        } as AnyUser));
     },
     updateStatus: async (id: string, status: 'Active' | 'Inactive') => {
-        await delay(400);
-        console.log(`User ${id} status updated to ${status}`);
+        await axiosInstance.put(`/users/${id}`, { isActive: status === 'Active' });
     },
-    changeRole: async (id: string, newRole: string) => {
-        await delay(500);
-        console.log(`User ${id} role changed to ${newRole}`);
-    }
+    changeRole: async (id: string, newRoleId: number) => {
+        await axiosInstance.put(`/users/${id}`, { roleId: newRoleId });
+    },
+    create: async (dto: { firstName: string; lastName: string; email: string; password: string; phone?: string; roleId: number }) => {
+        const res = await axiosInstance.post('/users', dto);
+        return res.data;
+    },
+    update: async (id: string, dto: { firstName?: string; lastName?: string; email?: string; password?: string; phone?: string; roleId?: number; isActive?: boolean }) => {
+        const res = await axiosInstance.put(`/users/${id}`, dto);
+        return res.data;
+    },
+    delete: async (id: string) => {
+        await axiosInstance.delete(`/users/${id}`);
+    },
 };
 
 export const reservationService = {

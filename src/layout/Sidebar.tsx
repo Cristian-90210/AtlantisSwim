@@ -9,7 +9,11 @@ import {
     UserCircle,
     Settings,
     LogOut,
-    X
+    X,
+    Waves,
+    BookOpen,
+    Megaphone,
+    CalendarCheck,
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -20,20 +24,40 @@ interface SidebarProps {
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const { user, logout } = useAuth();
-    const isAdmin = user?.role === UserRole.Admin;
+    const role = user?.role;
 
-    const links = [
+    const publicLinks = [
         { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
-        { to: '/courses', icon: GraduationCap, label: 'Courses' },
-        // Only verify admin access for these if needed, but per requirements user sees Dashboard & Courses.
-        // For now I'll show Coaches/Students to everyone or filter based on role as per Requirement 9.
-        // Req 9: "user vede doar Dashboard și Cursuri".
-        ...(isAdmin ? [
-            { to: '/coaches', icon: UserCircle, label: 'Coaches' },
-            { to: '/students', icon: Users, label: 'Students' },
-            { to: '/admin', icon: Settings, label: 'Admin Profile' },
-        ] : []),
+        { to: '/courses', icon: GraduationCap, label: 'Abonamente' },
     ];
+
+    const studentLinks = role === UserRole.Student ? [
+        { to: '/student', icon: LayoutDashboard, label: 'Dashboard' },
+        { to: '/student/schedule', icon: CalendarCheck, label: 'Orar' },
+    ] : [];
+
+    const coachLinks = role === UserRole.Coach ? [
+        { to: '/coach', icon: LayoutDashboard, label: 'Dashboard' },
+        { to: '/coach/schedule', icon: CalendarCheck, label: 'Orar' },
+        { to: '/coach/attendance', icon: Users, label: 'Prezență' },
+        { to: '/coach/results', icon: BookOpen, label: 'Rezultate' },
+    ] : [];
+
+    const adminLinks = role === UserRole.Admin ? [
+        { to: '/admin', icon: Settings, label: 'Dashboard Admin' },
+        { to: '/admin/users', icon: Users, label: 'Utilizatori' },
+        { to: '/students', icon: UserCircle, label: 'Elevi' },
+        { to: '/admin/courses', icon: BookOpen, label: 'Cursuri' },
+        { to: '/admin/services', icon: Waves, label: 'Servicii Înot' },
+        { to: '/admin/announcements', icon: Megaphone, label: 'Anunțuri' },
+        { to: '/admin/reservations', icon: CalendarCheck, label: 'Rezervări' },
+    ] : [];
+
+    const allLinks = role === UserRole.Admin
+        ? adminLinks
+        : role === UserRole.Coach
+            ? [...publicLinks, ...coachLinks]
+            : [...publicLinks, ...studentLinks];
 
     return (
         <>
@@ -60,32 +84,44 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     </button>
                 </div>
 
-                <nav className="p-4 space-y-1">
-                    {links.map((link) => (
+                <nav className="p-4 space-y-1 overflow-y-auto max-h-[calc(100vh-8rem)]">
+                    {allLinks.map((link) => (
                         <NavLink
                             key={link.to}
                             to={link.to}
+                            end={link.to === '/admin' || link.to === '/' || link.to === '/student' || link.to === '/coach'}
                             onClick={() => window.innerWidth < 1024 && onClose()}
                             className={({ isActive }) => clsx(
-                                "flex items-center px-4 py-3 text-[15px] font-medium rounded-lg transition-colors",
+                                "flex items-center px-4 py-2.5 text-[14px] font-medium rounded-lg transition-colors",
                                 isActive
                                     ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400"
                                     : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700/50"
                             )}
                         >
-                            <link.icon className="w-5 h-5 mr-3" />
+                            <link.icon className="w-4 h-4 mr-3 shrink-0" />
                             {link.label}
                         </NavLink>
                     ))}
                 </nav>
 
                 <div className="absolute bottom-0 w-full p-4 border-t border-gray-200 dark:border-gray-700">
+                    {user && (
+                        <div className="flex items-center gap-3 mb-3 px-2">
+                            <div className="w-8 h-8 rounded-full bg-host-cyan/20 flex items-center justify-center text-host-cyan font-bold text-sm">
+                                {user.name?.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">{user.name}</p>
+                                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                            </div>
+                        </div>
+                    )}
                     <button
                         onClick={logout}
-                        className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                        className="flex items-center w-full px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
                     >
-                        <LogOut className="w-5 h-5 mr-3" />
-                        Sign Out
+                        <LogOut className="w-4 h-4 mr-3" />
+                        Deconectare
                     </button>
                 </div>
             </div>
