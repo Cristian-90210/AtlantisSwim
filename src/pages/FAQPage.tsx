@@ -43,7 +43,7 @@ const faqItems: FAQItem[] = [
 
 export const FAQPage: React.FC = () => {
     return (
-        <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
+        <div className="min-h-screen pb-20">
             <PageHeader
                 title={<>ÎNTREBĂRI <span className="text-host-cyan">FRECVENTE</span></>}
                 subtitle="Găsește răspunsuri la cele mai comune întrebări despre cursurile de înot."

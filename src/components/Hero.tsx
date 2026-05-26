@@ -1,10 +1,11 @@
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 export const Hero: React.FC = () => {
     const { t } = useTranslation();
 
     return (
-        <div className="relative min-h-screen pt-20 md:pt-24 flex items-center justify-center overflow-hidden bg-host-gradient animate-gradient-x">
+        <div className="relative min-h-[70vh] pt-20 md:pt-24 py-20 flex items-center justify-center bg-host-gradient animate-gradient-x">
             {/* Fluid Background Effects */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
                 {/* Large textured blobs for "water depth" feel */}
@@ -17,9 +18,9 @@ export const Hero: React.FC = () => {
 
             <div className="container mx-auto px-6 relative z-10 text-center">
                 {/* Main Heading */}
-                <div className="mb-8 animate-in slide-in-from-bottom-5 duration-700 fade-in">
+                <div className="mb-8 animate-in slide-in-from-bottom-5 duration-700">
                     <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight mb-4 drop-shadow-sm">
-                        Atlantis Swim School
+                        {t('hero.title')}
                         <br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-host-cyan to-white">
                             {t('hero.platform_title')}
@@ -31,7 +32,7 @@ export const Hero: React.FC = () => {
                 </div>
 
                 {/* Legend container - Restored wrapper */}
-                <div className="max-w-3xl mx-auto animate-in slide-in-from-bottom-8 duration-1000 fade-in fill-mode-backwards delay-200">
+                <div className="max-w-3xl mx-auto animate-in slide-in-from-bottom-8 duration-1000">
                     {/* Legend */}
                     <div className="flex flex-wrap justify-center gap-6 text-sm text-blue-200/80 font-medium">
                         <div className="flex items-center space-x-2 animate-float">

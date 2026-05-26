@@ -19,9 +19,12 @@ namespace AtlantisSwim.Api.Controller
         [HttpPost("auth")]
         public IActionResult Auth([FromBody] UserLoginDto udata)
         {
+            var response = _userAction.UserLoginDataValidation(udata);
 
-            var data = _userAction.UserLoginDataValidation(udata);
-            return Ok("Login successful");
+            if (!response.IsSuccess)
+                return Unauthorized(response);
+
+            return Ok(response);
         }
     }
 }

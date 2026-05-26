@@ -35,5 +35,7 @@ namespace AtlantisSwim.Domain.Entities.User
 
         [DataType(DataType.Date)]
         public DateTime RegisteredOn { get; set; }
+
+        public bool IsActive { get; set; } = true;
     }
 }

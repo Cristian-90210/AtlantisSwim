@@ -89,13 +89,13 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = React.memo(({ isOpen, o
                     {!query && (
                         <div className="p-8 text-center text-gray-400">
                             <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                            <p>Type to search across courses, coaches, and students...</p>
+                            <p>{t('search.hint')}</p>
                         </div>
                     )}
 
                     {query && !hasResults && (
                         <div className="p-8 text-center text-gray-500">
-                            No results found for "{debouncedQuery}"
+                            {t('search.no_results', { query: debouncedQuery })}
                         </div>
                     )}
 
@@ -104,7 +104,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = React.memo(({ isOpen, o
                             {/* Courses */}
                             {results.courses.length > 0 && (
                                 <div className="mb-4">
-                                    <h3 className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Courses</h3>
+                                    <h3 className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('search.section_courses')}</h3>
                                     {results.courses.map(course => (
                                         <div
                                             key={course.id}
@@ -124,7 +124,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = React.memo(({ isOpen, o
                             {/* Coaches */}
                             {results.coaches.length > 0 && (
                                 <div className="mb-4">
-                                    <h3 className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Coaches</h3>
+                                    <h3 className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('search.section_coaches')}</h3>
                                     {results.coaches.map(coach => (
                                         <div
                                             key={coach.id}
@@ -144,7 +144,7 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = React.memo(({ isOpen, o
                             {/* Students */}
                             {results.students.length > 0 && (
                                 <div className="mb-2">
-                                    <h3 className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">Students</h3>
+                                    <h3 className="px-4 py-2 text-xs font-bold text-gray-500 uppercase tracking-wider">{t('search.section_students')}</h3>
                                     {results.students.map(student => (
                                         <div
                                             key={student.id}
@@ -167,8 +167,8 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = React.memo(({ isOpen, o
                 </div>
 
                 <div className="bg-gray-50 dark:bg-gray-800 px-4 py-3 text-xs text-gray-500 border-t border-gray-100 dark:border-gray-700 flex justify-between">
-                    <span>Press ESC to close</span>
-                    <span>{results.courses.length + results.coaches.length + results.students.length} results found</span>
+                    <span>{t('search.close_hint')}</span>
+                    <span>{t('search.results_count', { count: results.courses.length + results.coaches.length + results.students.length })}</span>
                 </div>
             </div>
         </div>

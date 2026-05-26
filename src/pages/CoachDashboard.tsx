@@ -455,43 +455,63 @@ export const CoachDashboard: React.FC = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#0f172a] pb-24 font-sans text-gray-800 dark:text-gray-200">
             <PageHeader
                 title={t('coach_dashboard.welcome', { name: user?.name })}
                 subtitle={t('coach_dashboard.subtitle')}
             />
 
-            <div className="container mx-auto px-6 -mt-10 relative z-20">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
-                        <p className="text-sm text-gray-500">{t('coach_dashboard.stats.todays_sessions')}</p>
-                        <p className="text-3xl font-extrabold text-host-blue dark:text-white mt-2">{schedule.length}</p>
+            <div className="container mx-auto px-6 max-w-7xl relative mt-8 z-20">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700/60 flex items-center justify-between hover:-translate-y-1 transition-transform duration-300">
+                        <div>
+                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('coach_dashboard.stats.todays_sessions')}</p>
+                            <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white leading-none">{schedule.length}</h3>
+                        </div>
+                        <div className="w-14 h-14 rounded-full bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center text-host-cyan shrink-0">
+                            <Calendar size={28} />
+                        </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
-                        <p className="text-sm text-gray-500">{t('coach_dashboard.stats.upcoming_classes')}</p>
-                        <p className="text-3xl font-extrabold text-host-cyan mt-2">{todaysSessions.length}</p>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700/60 flex items-center justify-between hover:-translate-y-1 transition-transform duration-300">
+                        <div>
+                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('coach_dashboard.stats.upcoming_classes')}</p>
+                            <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white leading-none">{todaysSessions.length}</h3>
+                        </div>
+                        <div className="w-14 h-14 rounded-full bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center text-host-cyan shrink-0">
+                            <Clock size={28} />
+                        </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
-                        <p className="text-sm text-gray-500">{t('coach_dashboard.stats.recovery')}</p>
-                        <p className="text-3xl font-extrabold text-yellow-500 mt-2">{recoverySessions.length}</p>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700/60 flex items-center justify-between hover:-translate-y-1 transition-transform duration-300">
+                        <div>
+                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('coach_dashboard.stats.recovery')}</p>
+                            <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white leading-none">{recoverySessions.length}</h3>
+                        </div>
+                        <div className="w-14 h-14 rounded-full bg-yellow-50 dark:bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
+                            <RotateCcw size={28} />
+                        </div>
                     </div>
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700">
-                        <p className="text-sm text-gray-500">{t('coach_dashboard.stats.total_results')}</p>
-                        <p className="text-3xl font-extrabold text-purple-500 mt-2">{allResults.filter(r => r.coachId === coachId).length}</p>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700/60 flex items-center justify-between hover:-translate-y-1 transition-transform duration-300">
+                        <div>
+                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{t('coach_dashboard.stats.total_results')}</p>
+                            <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white leading-none">{allResults.filter(r => r.coachId === coachId).length}</h3>
+                        </div>
+                        <div className="w-14 h-14 rounded-full bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-500 shrink-0">
+                            <Trophy size={28} />
+                        </div>
                     </div>
                 </div>
 
                 {/* Tab Navigation */}
-                <div className="flex flex-wrap gap-3 overflow-x-auto mb-8 pb-2">
+                <div className="flex flex-wrap gap-2 mb-8">
                     {tabs.map(tab => (
                         <button
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
                             className={clsx(
-                                "px-5 py-2.5 text-sm font-bold uppercase tracking-wider transition-all duration-200 whitespace-nowrap",
+                                "px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap",
                                 activeTab === tab.key
-                                    ? "bg-host-cyan text-white shadow-lg shadow-cyan-500/25"
-                                    : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-200"
+                                    ? "bg-host-cyan text-white shadow-md shadow-cyan-500/25"
+                                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-cyan-500/10 hover:text-host-cyan hover:border-cyan-300/50"
                             )}
                         >
                             {tab.label}
@@ -501,9 +521,9 @@ export const CoachDashboard: React.FC = () => {
 
                 {/* Schedule Tab */}
                 {activeTab === 'schedule' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                        <div className="p-8 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.training_schedule')}</h2>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                            <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.training_schedule')}</h2>
                             <div className="flex space-x-2">
                                 <span className="px-3 py-1 bg-host-cyan/10 text-host-cyan rounded-full text-xs font-bold uppercase tracking-wide">Upcoming</span>
                                 <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 rounded-full text-xs font-bold uppercase tracking-wide">Past</span>
@@ -514,17 +534,17 @@ export const CoachDashboard: React.FC = () => {
                             <table className="w-full text-left">
                                 <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-sm uppercase tracking-wider">
                                     <tr>
-                                        <th className="p-6 font-semibold">{t('coach_dashboard.table.time')}</th>
-                                        <th className="p-6 font-semibold">{t('coach_dashboard.table.student')}</th>
-                                        <th className="p-6 font-semibold">{t('coach_dashboard.table.course')}</th>
-                                        <th className="p-6 font-semibold">{t('coach_dashboard.table.status')}</th>
-                                        <th className="p-6 font-semibold text-right">{t('coach_dashboard.table.action')}</th>
+                                        <th className="p-4 font-semibold">{t('coach_dashboard.table.time')}</th>
+                                        <th className="p-4 font-semibold">{t('coach_dashboard.table.student')}</th>
+                                        <th className="p-4 font-semibold">{t('coach_dashboard.table.course')}</th>
+                                        <th className="p-4 font-semibold">{t('coach_dashboard.table.status')}</th>
+                                        <th className="p-4 font-semibold text-right">{t('coach_dashboard.table.action')}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                     {scheduleCalendarEntries.map((session) => (
                                         <tr key={session.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors group">
-                                            <td className="p-6">
+                                            <td className="p-4">
                                                 <div className="font-bold text-gray-800 dark:text-white flex items-center">
                                                     <Calendar size={16} className="mr-2 text-host-cyan" /> {session.date}
                                                 </div>
@@ -532,16 +552,16 @@ export const CoachDashboard: React.FC = () => {
                                                     <Clock size={14} className="mr-2" /> {session.time}
                                                 </div>
                                             </td>
-                                            <td className="p-6">
+                                            <td className="p-4">
                                                 <div className="font-medium text-gray-800 dark:text-gray-200">{session.studentName}</div>
                                                 <div className="text-xs text-gray-500">{session.studentLevel}</div>
                                             </td>
-                                            <td className="p-6">
+                                            <td className="p-4">
                                                 <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
                                                     {session.courseLabel}
                                                 </span>
                                             </td>
-                                            <td className="p-6">
+                                            <td className="p-4">
                                                 <span className={clsx(
                                                     "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide",
                                                     session.status === 'upcoming'
@@ -553,7 +573,7 @@ export const CoachDashboard: React.FC = () => {
                                                     {session.isRecovery ? t('coach_dashboard.attendance.recovery') : session.status}
                                                 </span>
                                             </td>
-                                            <td className="p-6 text-right">
+                                            <td className="p-4 text-right">
                                                 {session.isRecovery ? (
                                                     <span className="text-xs font-bold text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full">
                                                         {t('coach_dashboard.recovery.in_calendar')}
@@ -574,7 +594,7 @@ export const CoachDashboard: React.FC = () => {
 
                 {/* Attendance Tab */}
                 {activeTab === 'attendance' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                             <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.attendance.title')}</h2>
                             <div className="mt-4 flex gap-2">
@@ -582,10 +602,10 @@ export const CoachDashboard: React.FC = () => {
                                     type="button"
                                     onClick={() => setAttendanceMode('group')}
                                     className={clsx(
-                                        "px-4 py-2 text-xs font-bold uppercase tracking-wider border",
+                                        "px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200",
                                         attendanceMode === 'group'
-                                            ? "bg-host-cyan text-white border-host-cyan"
-                                            : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600"
+                                            ? "bg-host-cyan text-white shadow-md shadow-cyan-500/20"
+                                            : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-cyan-500/10 hover:text-host-cyan hover:border-cyan-300/50"
                                     )}
                                 >
                                     {t('coach_dashboard.attendance.mode_group')}
@@ -594,10 +614,10 @@ export const CoachDashboard: React.FC = () => {
                                     type="button"
                                     onClick={() => setAttendanceMode('individual')}
                                     className={clsx(
-                                        "px-4 py-2 text-xs font-bold uppercase tracking-wider border",
+                                        "px-4 py-2 rounded-full text-xs font-semibold transition-all duration-200",
                                         attendanceMode === 'individual'
-                                            ? "bg-host-cyan text-white border-host-cyan"
-                                            : "bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600"
+                                            ? "bg-host-cyan text-white shadow-md shadow-cyan-500/20"
+                                            : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-cyan-500/10 hover:text-host-cyan hover:border-cyan-300/50"
                                     )}
                                 >
                                     {t('coach_dashboard.attendance.mode_individual')}
@@ -908,7 +928,7 @@ export const CoachDashboard: React.FC = () => {
                 {activeTab === 'results' && (
                     <div className="space-y-8">
                         {/* Add Result Form */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 p-6">
                             <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center">
                                 <Trophy className="mr-2 text-host-cyan" size={20} />
                                 {t('coach_dashboard.results.add_title')}
@@ -960,7 +980,7 @@ export const CoachDashboard: React.FC = () => {
                         </div>
 
                         {/* Results Table */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
                             <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.results.all_results')}</h2>
                             </div>
@@ -1000,7 +1020,7 @@ export const CoachDashboard: React.FC = () => {
 
                 {/* Messages / Parent Communication Tab */}
                 {activeTab === 'messages' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700/60 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
                             <MessageCircle className="text-host-cyan" size={24} />
                             <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.messages.title')}</h2>
@@ -1018,7 +1038,7 @@ export const CoachDashboard: React.FC = () => {
                                     <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{m.content}</p>
                                 </div>
                             )) : (
-                                <div className="p-12 text-center text-gray-500">{t('coach_dashboard.messages.no_messages')}</div>
+                                <div className="p-10 text-center text-gray-500 text-sm">{t('coach_dashboard.messages.no_messages')}</div>
                             )}
                         </div>
                         <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/80">
@@ -1056,7 +1076,7 @@ export const CoachDashboard: React.FC = () => {
                 {/* Recovery Tab */}
                 {activeTab === 'recovery' && (
                     <div className="space-y-6">
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
                             <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
                                 <RotateCcw className="text-yellow-500" size={24} />
                                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.recovery.pending_requests')}</h2>
@@ -1088,7 +1108,7 @@ export const CoachDashboard: React.FC = () => {
                                     })}
                                 </div>
                             ) : (
-                                <div className="p-12 text-center text-gray-500">{t('coach_dashboard.recovery.no_pending_requests')}</div>
+                                <div className="p-10 text-center text-gray-500 text-sm">{t('coach_dashboard.recovery.no_pending_requests')}</div>
                             )}
                             {recoveryRequestFeedback && (
                                 <div className={clsx(
@@ -1100,7 +1120,7 @@ export const CoachDashboard: React.FC = () => {
                             )}
                         </div>
 
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
                             <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
                                 <RotateCcw className="text-yellow-500" size={24} />
                                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.recovery.title')}</h2>
@@ -1128,7 +1148,7 @@ export const CoachDashboard: React.FC = () => {
                                     })}
                                 </div>
                             ) : (
-                                <div className="p-12 text-center text-gray-500">{t('coach_dashboard.recovery.no_students')}</div>
+                                <div className="p-10 text-center text-gray-500 text-sm">{t('coach_dashboard.recovery.no_students')}</div>
                             )}
                         </div>
                     </div>
@@ -1136,7 +1156,7 @@ export const CoachDashboard: React.FC = () => {
 
                 {/* Individual Sessions Tab */}
                 {activeTab === 'individual' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
                             <User className="text-host-blue" size={24} />
                             <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.individual.title')}</h2>
@@ -1166,7 +1186,7 @@ export const CoachDashboard: React.FC = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="p-12 text-center text-gray-500">{t('coach_dashboard.individual.no_sessions')}</div>
+                            <div className="p-10 text-center text-gray-500 text-sm">{t('coach_dashboard.individual.no_sessions')}</div>
                         )}
                     </div>
                 )}
@@ -1175,7 +1195,7 @@ export const CoachDashboard: React.FC = () => {
                 {activeTab === 'count' && (
                     <div className="space-y-8">
                         {/* From schedule data */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
                             <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
                                 <Users className="text-host-cyan" size={24} />
                                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.count.title')}</h2>
@@ -1198,7 +1218,7 @@ export const CoachDashboard: React.FC = () => {
                         </div>
 
                         {/* From coach schedule slots */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
                             <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                                 <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.count.week_schedule')}</h2>
                             </div>

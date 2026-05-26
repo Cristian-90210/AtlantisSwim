@@ -1,5 +1,7 @@
 using AtlantisSwim.BusinessLayer.Core;
 using AtlantisSwim.BusinessLayer.Interfaces;
+using AtlantisSwim.Domain.Entities.User;
+using AtlantisSwim.Domain.Models.Responces;
 using AtlantisSwim.Domain.Models.User;
 
 namespace AtlantisSwim.BusinessLayer.Structure
@@ -8,17 +10,37 @@ namespace AtlantisSwim.BusinessLayer.Structure
     {
         public UserAuthAction() { }
 
-        public object UserLoginDataValidation(UserLoginDto udata)
+        public ActionResponce UserLoginDataValidation(UserLoginDto udata)
         {
+            var user = UserLoginDataValidationExecution(udata);
 
-            var isValid = UserLoginDataValidationExecution(udata);
-            if (isValid)
+            if (user == null)
+                return new ActionResponce { IsSuccess = false, Message = "Invalid credentials" };
+
+            var token = UserTokenGeneration(user);
+
+            return new ActionResponce
             {
-                var token = UserTokenGeneration(udata);
-
-            }
-
-            return null;
+                IsSuccess = true,
+                Message   = "Login successful",
+                Data      = new UserAuthResponseDto
+                {
+                    Id        = user.Id,
+                    UserName  = user.UserName,
+                    FirstName = user.FirstName,
+                    LastName  = user.LastName,
+                    Email     = user.Email,
+                    RoleId    = (int)user.Role,
+                    RoleName  = user.Role switch
+                    {
+                        UserRole.Student => "Elev",
+                        UserRole.Coach   => "Antrenor",
+                        UserRole.Admin   => "Admin",
+                        _                => user.Role.ToString()
+                    },
+                    Token = token
+                }
+            };
         }
     }
 }

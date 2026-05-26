@@ -11,7 +11,7 @@ namespace AtlantisSwim.DataAccess.Context
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(DbSession.ConnectionString);
+            optionsBuilder.UseNpgsql(DbSession.ConnectionString);
         }
     }
 }

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Hero } from '../components/Hero';
 import { CTAButton } from '../components/CTAButton';
-import { FAQ } from '../components/FAQ';
 import { subscriptionPlans, mockCoaches } from '../data/mockData';
 import { Users, GraduationCap, Trophy, Mail, Star, Twitter, Linkedin } from 'lucide-react';
 import { SubscriptionInfoModal } from '../components/SubscriptionInfoModal';
@@ -57,13 +56,13 @@ export const Landing: React.FC = () => {
             <Hero />
 
             {/* Services / Why Choose Section */}
-            <div className="py-20 bg-white dark:bg-gray-800">
+            <div className="py-20">
                 <div className="container mx-auto px-6">
                     <div className="scroll-reveal reveal-up text-center mb-16">
                         <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-4 uppercase tracking-wide">
                             <span className="text-host-cyan">{t('landing.why_choose.title')}</span>
                         </h2>
-                        <p className="text-gray-500 max-w-xl mx-auto">
+                        <p className="text-gray-500 dark:text-slate-400 max-w-xl mx-auto">
                             {t('landing.why_choose.subtitle')}
                         </p>
                     </div>
@@ -72,13 +71,13 @@ export const Landing: React.FC = () => {
                         {services.map((service, idx) => (
                             <div
                                 key={idx}
-                                className={`scroll-reveal reveal-up stagger-${idx + 1} bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg text-center hover:-translate-y-2 transition-transform duration-300 border border-gray-100 dark:border-gray-700`}
+                                className={`scroll-reveal reveal-up stagger-${idx + 1} bg-white dark:bg-[#1a2840] p-8 rounded-xl shadow-lg text-center hover:-translate-y-2 transition-transform duration-300 border border-gray-100 dark:border-slate-700/50`}
                             >
                                 <div className="mx-auto w-20 h-20 bg-brand-gradient rounded-full flex items-center justify-center mb-6 shadow-lg shadow-blue-200/50 dark:shadow-none">
                                     <service.icon className="w-10 h-10 text-white" />
                                 </div>
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3">{service.title}</h3>
-                                <p className="text-gray-500 mb-6 leading-relaxed">{service.desc}</p>
+                                <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-3">{service.title}</h3>
+                                <p className="text-gray-500 dark:text-slate-400 mb-6 leading-relaxed">{service.desc}</p>
                             </div>
                         ))}
                     </div>
@@ -86,13 +85,13 @@ export const Landing: React.FC = () => {
             </div>
 
             {/* Subscription Plans Section */}
-            <div className="py-20 bg-white dark:bg-gray-800">
+            <div className="py-20">
                 <div className="container mx-auto px-6">
                     <div className="scroll-reveal reveal-up text-center mb-16">
                         <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-4 uppercase tracking-wide">
                             <span className="text-host-cyan">{t('landing.subscriptions.title')}</span>
                         </h2>
-                        <p className="text-gray-500">{t('landing.subscriptions.subtitle')}</p>
+                        <p className="text-gray-500 dark:text-slate-400">{t('landing.subscriptions.subtitle')}</p>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -110,7 +109,7 @@ export const Landing: React.FC = () => {
                                 <div key={plan.id} className={`scroll-reveal reveal-up stagger-${Math.min(idx + 1, 6)}`}>
                                     <div
                                         onClick={() => setSelectedPlanId(plan.id)}
-                                        className="relative cursor-pointer bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 hover:-translate-y-1 transition-all duration-300 hover:shadow-xl hover:border-host-cyan/50 overflow-hidden h-full flex flex-col"
+                                        className="relative cursor-pointer bg-gray-50 dark:bg-[#1a2840] rounded-2xl border border-gray-200 dark:border-slate-700/50 p-6 hover:-translate-y-1 transition-all duration-300 hover:shadow-xl hover:border-host-cyan/50 overflow-hidden h-full flex flex-col"
                                     >
                                         {discount && (
                                             <div className="absolute top-4 right-4">
@@ -157,7 +156,7 @@ export const Landing: React.FC = () => {
                                                 event.stopPropagation();
                                                 navigate('/login');
                                             }}>
-                                                <span>ADAUGĂ ÎN COȘ</span>
+                                                <span>{t('landing.subscriptions.add_to_cart')}</span>
                                             </CTAButton>
                                         </div>
                                     </div>
@@ -169,20 +168,20 @@ export const Landing: React.FC = () => {
             </div>
 
             {/* Team / Coaches Section */}
-            <div className="py-20 bg-white dark:bg-gray-800">
+            <div className="py-20">
                 <div className="container mx-auto px-6">
                     <div className="scroll-reveal reveal-up text-center mb-16">
                         <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-4 uppercase tracking-wide">
                             <span className="text-host-cyan">{t('landing.team.title')}</span>
                         </h2>
-                        <p className="text-gray-500 max-w-xl mx-auto">
+                        <p className="text-gray-500 dark:text-slate-400 max-w-xl mx-auto">
                             {t('landing.team.subtitle')}
                         </p>
                     </div>
 
                     {/* Founder - Featured Card */}
                     <div className="scroll-reveal reveal-up mb-12">
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-amber-400/50 dark:border-amber-500/40 overflow-hidden relative">
+                        <div className="bg-white dark:bg-[#1a2840] rounded-2xl shadow-2xl border-2 border-amber-400/50 dark:border-amber-500/40 overflow-hidden relative">
                             {/* Founder badge */}
                             <div className="absolute top-4 right-4 z-10">
                                 <span className="bg-gradient-to-r from-amber-500 to-yellow-400 text-white text-xs font-extrabold px-4 py-1.5 rounded-full shadow-lg uppercase tracking-widest">
@@ -255,59 +254,57 @@ export const Landing: React.FC = () => {
                         {mockCoaches.map((coach, idx) => (
                             <div
                                 key={coach.id}
-                                className={`scroll-reveal reveal-up stagger-${Math.min(idx + 1, 6)} group relative h-[420px] rounded-2xl shadow-xl overflow-hidden transition-all duration-500 cursor-pointer`}
+                                className={`scroll-reveal reveal-up stagger-${Math.min(idx + 1, 6)} group relative h-[420px] rounded-2xl shadow-xl overflow-hidden cursor-pointer`}
                             >
-                                {/* 1. Full Background Image (Visible on hover via z-index/opacity tricks) */}
+                                {/* Layer 1: Background image — hidden by default, fades in on hover */}
                                 <div
-                                    className="absolute inset-0 bg-cover bg-no-repeat transition-transform duration-700 active:scale-105 group-active:scale-105"
+                                    className="absolute inset-0 bg-cover bg-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 scale-105 group-hover:scale-100 transition-transform"
                                     style={{ backgroundImage: `url(${coach.avatar})`, backgroundPosition: coach.imagePosition || 'top' }}
                                 />
 
-                                {/* 2. Dark Overlay for Hover State (Fades in) */}
+                                {/* Layer 2: Dark gradient overlay — appears with image on hover */}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-10" />
 
-                                {/* 3. Default Background (Solid Color - Fades OUT on hover) */}
-                                <div className="absolute inset-0 bg-white dark:bg-gray-800 opacity-100 group-hover:opacity-0 transition-opacity duration-500 z-20" />
+                                {/* Layer 3: Solid card background — visible by default, fades out on hover */}
+                                <div className="absolute inset-0 bg-white dark:bg-[#1a2840] opacity-100 group-hover:opacity-0 transition-opacity duration-500 z-20" />
 
-                                {/* 4. Content Container */}
-                                <div className="relative z-30 h-full p-6 flex flex-col items-center text-center transition-all duration-500">
+                                {/* Layer 4: Content — always on top */}
+                                <div className="relative z-30 h-full p-6 flex flex-col items-center text-center">
 
-                                    {/* Avatar Layer (Visible default, Fades/Scales out on hover) */}
+                                    {/* Avatar — shrinks away on hover */}
                                     <div className="mt-6 mb-4 transform transition-all duration-500 group-hover:scale-0 group-hover:opacity-0 group-hover:h-0 group-hover:mt-0 group-hover:mb-0 origin-top">
                                         <div className="relative inline-block">
-                                            <div className="absolute inset-0 bg-brand-gradient rounded-full blur-lg opacity-50"></div>
+                                            <div className="absolute inset-0 bg-brand-gradient rounded-full blur-lg opacity-50" />
                                             <img
                                                 src={coach.avatar}
                                                 alt={coach.name}
-                                                className="w-32 h-32 rounded-full object-cover border-4 border-white dark:border-gray-800 shadow-xl relative z-10"
+                                                className="w-32 h-32 rounded-full object-cover border-4 border-white dark:border-slate-700 shadow-xl relative z-10"
                                             />
-                                            <div className="absolute bottom-1 right-1 z-20 bg-host-cyan text-white p-1.5 rounded-full border-2 border-white dark:border-gray-800 shadow-md">
+                                            <div className="absolute bottom-1 right-1 z-20 bg-host-cyan text-white p-1.5 rounded-full border-2 border-white dark:border-slate-700 shadow-md">
                                                 <Star className="w-4 h-4 fill-current" />
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Text Content (Moves and changes color on hover) */}
+                                    {/* Text — slides to bottom on hover */}
                                     <div className="flex-1 flex flex-col justify-center group-hover:justify-end w-full transition-all duration-500">
-                                        <h3 className="text-xl font-bold text-host-blue dark:text-white mb-1 group-hover:text-white group-hover:text-2xl transition-all duration-500">
+                                        <h3 className="text-xl font-bold text-host-blue dark:text-white mb-1 group-hover:text-white group-hover:text-2xl transition-all duration-300">
                                             {coach.name}
                                         </h3>
-                                        <p className="text-gray-500 font-bold text-sm uppercase tracking-wider mb-2 group-hover:text-host-cyan group-hover:mb-1 transition-all duration-500">
+                                        <p className="text-gray-500 dark:text-slate-400 font-bold text-sm uppercase tracking-wider mb-2 group-hover:text-host-cyan transition-colors duration-300">
                                             {t(`coaches.${coach.id}.specialization`)}
                                         </p>
-
-                                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 px-2 leading-relaxed italic group-hover:text-gray-200 group-hover:mb-3 transition-colors duration-500 line-clamp-4">
+                                        <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 px-2 leading-relaxed italic group-hover:text-gray-200 transition-colors duration-300 line-clamp-4">
                                             "{coach.experienceYears} years of experience..."
                                         </p>
-
-                                        <div className="flex justify-center space-x-4 border-t border-gray-100 dark:border-gray-700 pt-4 group-hover:border-white/20 transition-colors duration-500">
-                                            <button className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-white hover:bg-[#1DA1F2] transition-all duration-300 shadow-sm hover:shadow-md group-hover:bg-white/10 group-hover:text-white group-hover:hover:bg-host-cyan">
+                                        <div className="flex justify-center space-x-3 border-t border-gray-100 dark:border-white/10 pt-4 group-hover:border-white/20 transition-colors duration-300">
+                                            <button className="p-2 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-300 hover:text-white hover:bg-[#1DA1F2] group-hover:bg-white/10 group-hover:text-white transition-all duration-300">
                                                 <Twitter size={18} />
                                             </button>
-                                            <button className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-white hover:bg-[#0077b5] transition-all duration-300 shadow-sm hover:shadow-md group-hover:bg-white/10 group-hover:text-white group-hover:hover:bg-host-cyan">
+                                            <button className="p-2 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-300 hover:text-white hover:bg-[#0077b5] group-hover:bg-white/10 group-hover:text-white transition-all duration-300">
                                                 <Linkedin size={18} />
                                             </button>
-                                            <a href={`mailto:${coach.email}`} className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-white hover:bg-host-blue transition-all duration-300 shadow-sm hover:shadow-md group-hover:bg-white/10 group-hover:text-white group-hover:hover:bg-host-cyan">
+                                            <a href={`mailto:${coach.email}`} className="p-2 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-300 hover:text-white hover:bg-host-blue group-hover:bg-white/10 group-hover:text-white transition-all duration-300">
                                                 <Mail size={18} />
                                             </a>
                                         </div>
@@ -319,7 +316,7 @@ export const Landing: React.FC = () => {
                 </div>
             </div>
 
-            {/* FAQ + CTA wrapper with single gradient */}
+            {/* CTA wrapper with single gradient */}
             <div className="bg-host-gradient animate-gradient-x relative overflow-hidden">
                 {/* Fluid Background Effects (same as Hero) */}
                 <div className="absolute top-0 left-0 w-full h-full overflow-hidden z-0">
@@ -327,9 +324,6 @@ export const Landing: React.FC = () => {
                     <div className="absolute top-[20%] right-[-20%] w-[50%] h-[50%] bg-cyan-600/20 rounded-full mix-blend-overlay filter blur-3xl animate-blob animation-delay-2000"></div>
                     <div className="absolute bottom-[-20%] left-[30%] w-[40%] h-[40%] bg-host-blue/40 rounded-full mix-blend-overlay filter blur-3xl animate-blob animation-delay-4000"></div>
                 </div>
-
-                {/* FAQ Section */}
-                <FAQ />
 
                 {/* CTA Section */}
                 <div className="py-20 relative">

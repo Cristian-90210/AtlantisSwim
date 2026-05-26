@@ -13,7 +13,7 @@ export const MainLayout: React.FC = () => {
 
 
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-900 flex flex-col font-sans transition-colors duration-300">
+        <div className="min-h-screen bg-white dark:bg-[#0b1220] flex flex-col font-sans transition-colors duration-300">
             <AtlantisNavbar
                 onMenuClick={() => setIsMenuOpen(true)}
             />

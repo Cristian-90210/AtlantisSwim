@@ -10,8 +10,8 @@ export const Coaches: React.FC = () => {
     return (
         <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
             <PageHeader
-                title={<>ECHIPA <span className="text-host-cyan">NOASTRĂ</span></>}
-                subtitle="Cunoaște echipa de antrenori și manageri Atlantis Swim."
+                title={<>{t('coaches_page.title')} <span className="text-host-cyan">{t('coaches_page.title_highlight')}</span></>}
+                subtitle={t('coaches_page.subtitle')}
             />
 
             <div className="container mx-auto px-6 -mt-10 relative z-20">
@@ -21,7 +21,7 @@ export const Coaches: React.FC = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border-2 border-amber-400/50 dark:border-amber-500/40 overflow-hidden relative">
                         <div className="absolute top-4 right-4 z-10">
                             <span className="bg-gradient-to-r from-amber-500 to-yellow-400 text-white text-xs font-extrabold px-4 py-1.5 rounded-full shadow-lg uppercase tracking-widest">
-                                ★ Fondator
+                                ★ {t('landing.team.founder')}
                             </span>
                         </div>
                         <div className="flex flex-col md:flex-row">
@@ -40,11 +40,11 @@ export const Coaches: React.FC = () => {
                                     Varnic Alexandru
                                 </h3>
                                 <p className="text-amber-500 font-bold uppercase tracking-widest text-sm mb-6">
-                                    Fondator / Antrenor Principal
+                                    {t('landing.team.founder_role')}
                                 </p>
                                 <div className="space-y-4 text-gray-600 dark:text-gray-300 leading-relaxed">
-                                    <p>Varnic Alexandru este fondatorul și antrenorul principal al școlii noastre de înot, cu o experiență de peste 10 ani în domeniu.</p>
-                                    <p>De-a lungul carierei, și-a format un stil unic de predare, axat pe performanță, dar și pe dezvoltarea armonioasă a fiecărui elev. Sub îndrumarea sa, a creat o echipă de antrenori dedicați, instruiți după metodele sale eficiente de învățare. Pasiunea și profesionalismul lui Alexandru stau la baza rezultatelor și a încrederii pe care părinții și sportivii o au în școala noastră.</p>
+                                    <p>{t('landing.team.founder_bio_1')}</p>
+                                    <p>{t('landing.team.founder_bio_2')}</p>
                                 </div>
                                 <div className="flex items-center space-x-4 mt-6">
                                     <button className="p-2 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 hover:text-white hover:bg-amber-500 transition-all duration-300 shadow-sm hover:shadow-md"><Twitter size={18} /></button>
@@ -115,7 +115,7 @@ export const Coaches: React.FC = () => {
                                     </p>
 
                                     <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 px-2 leading-relaxed italic group-hover:text-gray-200 group-hover:mb-3 transition-colors duration-500 line-clamp-4">
-                                        "{t('coaches_page.experience', { count: coach.experienceYears, defaultValue: `${coach.experienceYears} years of experience` })}..."
+                                        "{t('coaches_page.experience', { count: coach.experienceYears })}..."
                                     </p>
 
                                     <div className="flex justify-center space-x-4 border-t border-gray-100 dark:border-gray-700 pt-4 group-hover:border-white/20 transition-colors duration-500">

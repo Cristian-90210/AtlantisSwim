@@ -1,5 +1,6 @@
 ﻿import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import type { AppNotification } from '../types';
+import { getRoleKey } from '../types';
+import type { AppNotification, UserRole } from '../types';
 import { mockNotifications } from '../data/mockData';
 import { useAuth } from './AuthContext';
 
@@ -29,9 +30,10 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     const { user } = useAuth();
 
     // Filtrăm notificările inițiale în funcție de rol
-    const getInitialNotifications = useCallback((role: string | undefined): AppNotification[] => {
-        if (!role) return [];
-        return mockNotifications.filter(n => n.targetRole === 'all' || n.targetRole === role);
+    const getInitialNotifications = useCallback((role: UserRole | undefined): AppNotification[] => {
+        if (role === undefined) return [];
+        const key = getRoleKey(role);
+        return mockNotifications.filter(n => n.targetRole === 'all' || n.targetRole === key);
     }, []);
 
     const [notifications, setNotifications] = useState<AppNotification[]>(() =>
@@ -53,8 +55,9 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!user) return;
 
         const interval = setInterval(() => {
+            const roleKey = getRoleKey(user.role);
             const pool = liveNotificationPool.filter(
-                n => n.targetRole === 'all' || n.targetRole === user.role
+                n => n.targetRole === 'all' || n.targetRole === roleKey
             );
             if (pool.length === 0) return;
 

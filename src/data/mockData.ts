@@ -1,3 +1,4 @@
+import { UserRole } from '../types';
 import type { User, Student, Coach, Course, SwimmingResult, AttendanceRecord, Message, Subscription, CoachScheduleSlot, SpecialOffer, StudentNote, StudentHealthFlag, ProgressSnapshot, RecoveryCredit } from '../types';
 
 export interface MockUserAccount extends User {
@@ -13,7 +14,7 @@ export const mockCoaches: Coach[] = [
         email: 'catalina@atlantisswim.md',
         avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755805148272508-1152x1536.jpg',
         status: 'Active',
-        role: 'coach',
+        role: UserRole.Coach,
         imagePosition: 'center'
     },
     {
@@ -24,7 +25,7 @@ export const mockCoaches: Coach[] = [
         email: 'catalin@atlantisswim.md',
         avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755608849746448-1152x1536.jpg',
         status: 'Active',
-        role: 'coach'
+        role: UserRole.Coach
     },
     {
         id: 'c3',
@@ -34,7 +35,7 @@ export const mockCoaches: Coach[] = [
         email: 'alexandru@atlantisswim.md',
         avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755805146956334-1152x1536.jpg',
         status: 'Active',
-        role: 'coach'
+        role: UserRole.Coach
     },
     {
         id: 'c4',
@@ -44,7 +45,7 @@ export const mockCoaches: Coach[] = [
         email: 'roman@atlantisswim.md',
         avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755805147472445-1152x1536.jpg',
         status: 'Active',
-        role: 'coach',
+        role: UserRole.Coach,
         imagePosition: 'center'
     },
     {
@@ -55,7 +56,7 @@ export const mockCoaches: Coach[] = [
         email: 'nicoleta@atlantisswim.md',
         avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755805176915236-1152x1536.jpg',
         status: 'Active',
-        role: 'coach',
+        role: UserRole.Coach,
         imagePosition: 'center'
     },
     {
@@ -66,7 +67,7 @@ export const mockCoaches: Coach[] = [
         email: 'dumitru@atlantisswim.md',
         avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755608855957162-1152x1536.jpg',
         status: 'Active',
-        role: 'coach',
+        role: UserRole.Coach,
         imagePosition: 'center'
     }
 ];
@@ -76,7 +77,7 @@ export const mockAdmins: import('../types').Admin[] = [
         id: 'admin-1',
         name: 'Super Admin',
         email: 'admin@school.com',
-        role: 'admin',
+        role: UserRole.Admin,
         status: 'Active',
         avatar: 'https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=Admin'
     }
@@ -226,7 +227,7 @@ export const mockStudents: Student[] = [
         level: 'Beginner',
         status: 'Active',
         enrolledCourseId: 'crs1',
-        role: 'student',
+        role: UserRole.Student,
         avatar: 'https://ui-avatars.com/api/?name=Andrei+Popa'
     },
     {
@@ -237,7 +238,7 @@ export const mockStudents: Student[] = [
         level: 'Advanced',
         status: 'Active',
         enrolledCourseId: 'crs2',
-        role: 'student',
+        role: UserRole.Student,
         avatar: 'https://ui-avatars.com/api/?name=Elena+Dumitru'
     },
     {
@@ -248,7 +249,7 @@ export const mockStudents: Student[] = [
         level: 'Intermediate',
         status: 'Inactive',
         enrolledCourseId: 'crs3',
-        role: 'student',
+        role: UserRole.Student,
         avatar: 'https://ui-avatars.com/api/?name=Mihai+Voicu'
     },
     {
@@ -259,7 +260,7 @@ export const mockStudents: Student[] = [
         level: 'Beginner',
         status: 'Active',
         enrolledCourseId: 'crs1',
-        role: 'student',
+        role: UserRole.Student,
         avatar: 'https://ui-avatars.com/api/?name=Ioana+Stan'
     },
     {
@@ -270,7 +271,7 @@ export const mockStudents: Student[] = [
         level: 'Advanced',
         status: 'Active',
         enrolledCourseId: 'crs2',
-        role: 'student',
+        role: UserRole.Student,
         avatar: 'https://ui-avatars.com/api/?name=George+Enescu'
     }
 ];
@@ -446,7 +447,7 @@ export const mockUserAccounts: MockUserAccount[] = [
         name: 'Andrei Popov',
         email: 'andrei.popov@student.md',
         password: 'elev1234',
-        role: 'student',
+        role: UserRole.Student,
         avatar: 'https://ui-avatars.com/api/?background=0ea5e9&color=fff&name=Andrei+Popov',
     },
     {
@@ -454,7 +455,7 @@ export const mockUserAccounts: MockUserAccount[] = [
         name: 'Elena Dumitru',
         email: 'elena.dumitru@student.md',
         password: 'elev1234',
-        role: 'student',
+        role: UserRole.Student,
         avatar: 'https://ui-avatars.com/api/?background=0ea5e9&color=fff&name=Elena+Dumitru',
     },
     {
@@ -462,7 +463,7 @@ export const mockUserAccounts: MockUserAccount[] = [
         name: 'Mihai Voicu',
         email: 'mihai.voicu@student.md',
         password: 'elev1234',
-        role: 'student',
+        role: UserRole.Student,
         avatar: 'https://ui-avatars.com/api/?background=0ea5e9&color=fff&name=Mihai+Voicu',
     },
 
@@ -472,7 +473,7 @@ export const mockUserAccounts: MockUserAccount[] = [
         name: 'Cătălina Moraru',
         email: 'catalina@atlantisswim.md',
         password: 'antrenor1234',
-        role: 'coach',
+        role: UserRole.Coach,
         avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755805148272508-1152x1536.jpg',
     },
     {
@@ -480,7 +481,7 @@ export const mockUserAccounts: MockUserAccount[] = [
         name: 'Cătălin Ciobanu',
         email: 'catalin@atlantisswim.md',
         password: 'antrenor1234',
-        role: 'coach',
+        role: UserRole.Coach,
         avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755608849746448-1152x1536.jpg',
     },
     {
@@ -488,7 +489,7 @@ export const mockUserAccounts: MockUserAccount[] = [
         name: 'Alexandru Rusu',
         email: 'alexandru@atlantisswim.md',
         password: 'antrenor1234',
-        role: 'coach',
+        role: UserRole.Coach,
         avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755805146956334-1152x1536.jpg',
     },
 
@@ -498,7 +499,7 @@ export const mockUserAccounts: MockUserAccount[] = [
         name: 'Super Admin',
         email: 'admin@school.com',
         password: 'admin1234',
-        role: 'admin',
+        role: UserRole.Admin,
         avatar: 'https://ui-avatars.com/api/?background=7c3aed&color=fff&name=Super+Admin',
     },
     {
@@ -506,7 +507,7 @@ export const mockUserAccounts: MockUserAccount[] = [
         name: 'Director Ionescu',
         email: 'director@school.com',
         password: 'admin1234',
-        role: 'admin',
+        role: UserRole.Admin,
         avatar: 'https://ui-avatars.com/api/?background=7c3aed&color=fff&name=Director+Ionescu',
     },
     {
@@ -514,7 +515,7 @@ export const mockUserAccounts: MockUserAccount[] = [
         name: 'Manager Stancu',
         email: 'manager@school.com',
         password: 'admin1234',
-        role: 'admin',
+        role: UserRole.Admin,
         avatar: 'https://ui-avatars.com/api/?background=7c3aed&color=fff&name=Manager+Stancu',
     },
 ];

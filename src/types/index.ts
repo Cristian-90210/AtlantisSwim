@@ -1,4 +1,37 @@
-export type UserRole = 'admin' | 'student' | 'coach';
+/**
+ * Standardised role values — must match the backend UserRole enum.
+ * 1 = Student (Elev), 2 = Coach (Antrenor), 3 = Admin
+ *
+ * Using a const object instead of enum so that esbuild/Vite can strip it
+ * (required by erasableSyntaxOnly in tsconfig.app.json).
+ */
+export const UserRole = {
+    Student: 1,
+    Coach:   2,
+    Admin:   3,
+} as const;
+export type UserRole = typeof UserRole[keyof typeof UserRole];
+
+/** Human-readable Romanian label for a role. */
+export function getRoleLabel(role: UserRole): string {
+    switch (role) {
+        case UserRole.Student: return 'Elev';
+        case UserRole.Coach:   return 'Antrenor';
+        case UserRole.Admin:   return 'Admin';
+    }
+}
+
+/**
+ * URL / notification-target key for a role.
+ * Used wherever a lowercase string key is needed (routes, notification targetRole, etc.)
+ */
+export function getRoleKey(role: UserRole): 'student' | 'coach' | 'admin' {
+    switch (role) {
+        case UserRole.Student: return 'student';
+        case UserRole.Coach:   return 'coach';
+        case UserRole.Admin:   return 'admin';
+    }
+}
 
 export interface Booking {
     id: string;
@@ -14,7 +47,7 @@ export interface User {
     id: string;
     name: string;
     email: string;
-    role: UserRole;
+    role: UserRole;  // numeric: 1 | 2 | 3
     avatar?: string;
 }
 
@@ -24,10 +57,10 @@ export interface Student {
     age: number;
     email: string;
     level: 'Beginner' | 'Intermediate' | 'Advanced';
-    status: 'Active' | 'Inactive'; // Ensure status is here
+    status: 'Active' | 'Inactive';
     enrolledCourseId?: string;
-    role: 'student'; // Add discriminator
-    avatar?: string; // Add optional avatar
+    role: typeof UserRole.Student;  // discriminator = 1
+    avatar?: string;
 }
 
 export type MedicalFlagType = 'asthma' | 'chlorine_allergy' | 'other';
@@ -46,7 +79,7 @@ export interface Admin {
     id: string;
     name: string;
     email: string;
-    role: 'admin';
+    role: typeof UserRole.Admin;  // discriminator = 3
     avatar?: string;
     status: 'Active' | 'Inactive';
 }
@@ -70,7 +103,7 @@ export interface Coach {
     email: string;
     avatar?: string;
     status: 'Active' | 'Inactive';
-    role: 'coach'; // Add discriminator
+    role: typeof UserRole.Coach;  // discriminator = 2
     imagePosition?: 'top' | 'center' | 'bottom';
 }
 
@@ -218,6 +251,6 @@ export interface AppNotification {
     message: string;
     timestamp: string; // ISO string
     read: boolean;
-    targetRole: 'all' | 'student' | 'coach' | 'admin';
+    targetRole: 'all' | 'student' | 'coach' | 'admin';  // use getRoleKey() to compare with UserRole
     link?: string; // optional route to navigate to on click
 }

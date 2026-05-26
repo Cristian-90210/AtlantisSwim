@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { PageHeader } from '../components/PageHeader';
 import { CTAButton } from '../components/CTAButton';
 import { CartToast } from '../components/CartToast';
@@ -14,11 +15,12 @@ export const Courses: React.FC = () => {
     const { isAuthenticated } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
+    const { t } = useTranslation();
     const categoryLabels: Record<string, { label: string; icon: React.ElementType; color: string }> = {
-        standard: { label: 'Standard', icon: Tag, color: 'text-blue-400' },
-        pro: { label: 'Pro', icon: Zap, color: 'text-purple-400' },
-        individual: { label: 'Individual', icon: User, color: 'text-amber-400' },
-        transport: { label: 'Cu Transport', icon: Car, color: 'text-green-400' },
+        standard: { label: t('landing.subscriptions.standard'), icon: Tag, color: 'text-blue-400' },
+        pro: { label: t('landing.subscriptions.pro'), icon: Zap, color: 'text-purple-400' },
+        individual: { label: t('landing.subscriptions.individual'), icon: User, color: 'text-amber-400' },
+        transport: { label: t('landing.subscriptions.transport'), icon: Car, color: 'text-green-400' },
     };
 
     const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
@@ -27,8 +29,8 @@ export const Courses: React.FC = () => {
     return (
         <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
             <PageHeader
-                title={<>ABONAMENTE <span className="text-host-cyan">& PREȚURI</span></>}
-                subtitle="Alege abonamentul potrivit pentru tine. Prețurile sunt în lei moldovenești (MDL)."
+                title={<>{t('courses_page.plans_title')} <span className="text-host-cyan">{t('courses_page.plans_title_highlight')}</span></>}
+                subtitle={t('courses_page.plans_subtitle')}
             />
 
             <div className="container mx-auto px-6 mt-8">
@@ -63,12 +65,12 @@ export const Courses: React.FC = () => {
                                     )}
 
                                     <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-3 pr-8 leading-tight">
-                                        {plan.name}
+                                        {t(`landing.plans.${plan.id}.name`)}
                                     </h3>
 
                                     <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
                                         <Clock size={14} />
-                                        <span>{plan.sessions} ședințe</span>
+                                        <span>{plan.sessions} {t('landing.subscriptions.sessions')}</span>
                                         <span className="text-gray-300 dark:text-gray-600">•</span>
                                         <span>{plan.duration}</span>
                                     </div>
@@ -117,9 +119,9 @@ export const Courses: React.FC = () => {
                                             className="w-full"
                                         >
                                             {items.some(i => i.id === plan.id) ? (
-                                                <><span>ADĂUGAT ({items.find(i => i.id === plan.id)?.quantity})</span></>
+                                                <><span>{t('courses_page.added_to_cart', { count: items.find(i => i.id === plan.id)?.quantity })}</span></>
                                             ) : (
-                                                <><span>ADAUGĂ ÎN COȘ</span></>
+                                                <><span>{t('landing.subscriptions.add_to_cart')}</span></>
                                             )}
                                         </CTAButton>
                                     </div>
@@ -136,10 +138,10 @@ export const Courses: React.FC = () => {
                     isOpen={!!selectedPlanId}
                     onClose={() => setSelectedPlanId(null)}
                     planId={selectedPlan.id}
-                    name={selectedPlan.name}
+                    name={t(`landing.plans.${selectedPlan.id}.name`)}
                     price={selectedPlan.price}
                     discountPrice={selectedPlan.discountPrice}
-                    category={categoryLabels[selectedPlan.category]?.label || 'Standard'}
+                    category={categoryLabels[selectedPlan.category]?.label || t('landing.subscriptions.standard')}
                     onSelect={() => {
                         setSelectedPlanId(null);
                         if (!isAuthenticated) {

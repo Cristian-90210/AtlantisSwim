@@ -3,29 +3,29 @@ import { useAuth } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Waves, ChevronDown, ChevronUp } from 'lucide-react';
 
-import type { UserRole } from '../types';
+import { UserRole, getRoleKey } from '../types';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 
 const DEMO_ACCOUNTS: { role: UserRole; name: string; email: string; password: string }[] = [
     // Elevi
-    { role: 'student', name: 'Andrei Popov', email: 'andrei.popov@student.md', password: 'elev1234' },
-    { role: 'student', name: 'Elena Dumitru', email: 'elena.dumitru@student.md', password: 'elev1234' },
-    { role: 'student', name: 'Mihai Voicu', email: 'mihai.voicu@student.md', password: 'elev1234' },
+    { role: UserRole.Student, name: 'Andrei Popov',    email: 'andrei.popov@student.md',  password: 'elev1234'      },
+    { role: UserRole.Student, name: 'Elena Dumitru',   email: 'elena.dumitru@student.md', password: 'elev1234'      },
+    { role: UserRole.Student, name: 'Mihai Voicu',     email: 'mihai.voicu@student.md',   password: 'elev1234'      },
     // Antrenori
-    { role: 'coach', name: 'Cătălina Moraru', email: 'catalina@atlantisswim.md', password: 'antrenor1234' },
-    { role: 'coach', name: 'Cătălin Ciobanu', email: 'catalin@atlantisswim.md', password: 'antrenor1234' },
-    { role: 'coach', name: 'Alexandru Rusu', email: 'alexandru@atlantisswim.md', password: 'antrenor1234' },
+    { role: UserRole.Coach,   name: 'Cătălina Moraru', email: 'catalina@atlantisswim.md', password: 'antrenor1234'  },
+    { role: UserRole.Coach,   name: 'Cătălin Ciobanu', email: 'catalin@atlantisswim.md',  password: 'antrenor1234'  },
+    { role: UserRole.Coach,   name: 'Alexandru Rusu',  email: 'alexandru@atlantisswim.md',password: 'antrenor1234'  },
     // Administratori
-    { role: 'admin', name: 'Super Admin', email: 'admin@school.com', password: 'admin1234' },
-    { role: 'admin', name: 'Director Ionescu', email: 'director@school.com', password: 'admin1234' },
-    { role: 'admin', name: 'Manager Stancu', email: 'manager@school.com', password: 'admin1234' },
+    { role: UserRole.Admin,   name: 'Super Admin',     email: 'admin@school.com',         password: 'admin1234'     },
+    { role: UserRole.Admin,   name: 'Director Ionescu',email: 'director@school.com',      password: 'admin1234'     },
+    { role: UserRole.Admin,   name: 'Manager Stancu',  email: 'manager@school.com',       password: 'admin1234'     },
 ];
 
 const ROLE_COLORS: Record<UserRole, string> = {
-    student: 'bg-sky-500/20 text-sky-300 border-sky-400/30',
-    coach: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
-    admin: 'bg-violet-500/20 text-violet-300 border-violet-400/30',
+    [UserRole.Student]: 'bg-sky-500/20 text-sky-300 border-sky-400/30',
+    [UserRole.Coach]:   'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
+    [UserRole.Admin]:   'bg-violet-500/20 text-violet-300 border-violet-400/30',
 };
 
 export const Login: React.FC = () => {
@@ -44,12 +44,13 @@ export const Login: React.FC = () => {
     // Auto-redirect if already logged in
     React.useEffect(() => {
         if (isAuthenticated && user) {
-            const roleHome = user.role === 'admin' ? '/admin' : user.role === 'coach' ? '/coach' : '/student';
+            const roleHome = user.role === UserRole.Admin ? '/admin' : user.role === UserRole.Coach ? '/coach' : '/student';
+            const roleKey  = getRoleKey(user.role);
 
             // Only use redirectPath if it belongs to the user's role (or is a shared route)
             if (redirectPath) {
                 const isRoleMatch =
-                    redirectPath.startsWith(`/${user.role}`) ||
+                    redirectPath.startsWith(`/${roleKey}`) ||
                     (!redirectPath.startsWith('/student') && !redirectPath.startsWith('/coach') && !redirectPath.startsWith('/admin'));
                 if (isRoleMatch) {
                     navigate(redirectPath, { replace: true });
@@ -61,19 +62,17 @@ export const Login: React.FC = () => {
         }
     }, [isAuthenticated, user, navigate, redirectPath]);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setIsLoading(true);
 
-        setTimeout(() => {
-            const ok = login(email.trim(), password);
-            if (!ok) {
-                setError('Email sau parolă incorectă. Verifică credențialele demo.');
-                setIsLoading(false);
-            }
-            // on success the effect above redirects automatically
-        }, 600);
+        const ok = await login(email.trim(), password);
+        if (!ok) {
+            setError('Email sau parolă incorectă.');
+        }
+        setIsLoading(false);
+        // on success the useEffect above redirects automatically
     };
 
     const fillDemo = (acc: typeof DEMO_ACCOUNTS[0]) => {
@@ -191,10 +190,10 @@ export const Login: React.FC = () => {
 
                         {showDemo && (
                             <div className="mt-3 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
-                                {(['student', 'coach', 'admin'] as UserRole[]).map((role) => (
+                                {([UserRole.Student, UserRole.Coach, UserRole.Admin] as UserRole[]).map((role) => (
                                     <div key={role}>
                                         <p className="text-[10px] uppercase tracking-widest text-blue-200/40 mb-1 mt-2 px-1">
-                                            {role === 'student' ? 'Elevi' : role === 'coach' ? 'Antrenori' : 'Administratori'}
+                                            {role === UserRole.Student ? 'Elevi' : role === UserRole.Coach ? 'Antrenori' : 'Administratori'}
                                         </p>
                                         {DEMO_ACCOUNTS.filter((a) => a.role === role).map((acc) => (
                                             <button

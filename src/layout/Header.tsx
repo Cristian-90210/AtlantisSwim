@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { UserRole } from '../types';
 import { useTheme } from '../context/ThemeContext';
 import { Menu, Sun, Moon, LogOut, LogIn, ShoppingCart } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -100,17 +101,17 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
     const navItems = user
         ? [
             // Authenticated: role-based dashboard + relevant links
-            ...(user.role === 'student' ? [
+            ...(user.role === UserRole.Student ? [
                 { label: t('header.dashboard'), to: '/student' },
                 { label: t('header.courses'), to: '/courses' },
                 { label: t('header.attendance', { defaultValue: 'Prezență' }), to: '/prezenta' },
                 { label: t('header.our_team'), to: '/coaches' },
             ] : []),
-            ...(user.role === 'coach' ? [
+            ...(user.role === UserRole.Coach ? [
                 { label: t('header.dashboard'), to: '/coach' },
                 { label: t('header.students'), to: '/students' },
             ] : []),
-            ...(user.role === 'admin' ? [
+            ...(user.role === UserRole.Admin ? [
                 { label: t('header.dashboard'), to: '/admin' },
                 { label: t('header.courses'), to: '/courses' },
                 { label: t('header.coaches'), to: '/coaches' },
@@ -122,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
             { label: t('header.home'), to: '/' },
             { label: t('header.courses'), to: '/courses' },
             { label: t('header.our_team'), to: '/coaches' },
-            { label: t('header.faq'), to: '#faq-section' },
+            { label: t('header.faq'), to: '/faq' },
         ];
 
     return (
@@ -169,7 +170,7 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
                     {/* Right: Actions */}
                     <div className="hidden lg:flex items-center justify-end flex-1 space-x-4">
 
-                        {user?.role !== 'coach' && <CartIcon />}
+                        {user?.role !== UserRole.Coach && <CartIcon />}
 
                         <LanguageSwitcher />
 

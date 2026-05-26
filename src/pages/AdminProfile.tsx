@@ -7,6 +7,7 @@ import { Shield, Bell, User as UserIcon, Activity, Calendar, Users, BarChart3, C
 import { Button } from '../components/Button';
 import { useTranslation } from 'react-i18next';
 import { mockStudents, mockCoaches, mockBookings } from '../data/mockData';
+import { UserRole, getRoleKey } from '../types';
 import type { StudentNote, Subscription, CoachScheduleSlot, SwimmingResult, AttendanceRecord, SpecialOffer, SwimStyle, SwimDistance } from '../types';
 import { noteService, subscriptionService, scheduleService, resultsService, attendanceService, offerService } from '../services/api';
 import { clsx } from 'clsx';
@@ -14,15 +15,16 @@ import { clsx } from 'clsx';
 export const AdminProfile: React.FC = () => {
     const { user } = useAuth();
     const { t } = useTranslation();
-    const role = user?.role || 'student';
+    const role = user?.role ?? UserRole.Student;
+    const roleKey = getRoleKey(role);
 
     // Role-based tab access
     const roleTabs: Record<string, string[]> = {
-        admin: ['overview', 'notes', 'subscriptions', 'schedule', 'attendance', 'results', 'offers'],
-        coach: ['schedule', 'attendance', 'results', 'messages', 'requests'],
+        admin:   ['overview', 'notes', 'subscriptions', 'schedule', 'attendance', 'results', 'offers'],
+        coach:   ['schedule', 'attendance', 'results', 'messages', 'requests'],
         student: ['subscriptions', 'calendar', 'attendance', 'results', 'recovery'],
     };
-    const allowedTabs = roleTabs[role] || roleTabs.student;
+    const allowedTabs = roleTabs[roleKey] ?? roleTabs.student;
     const [activeTab, setActiveTab] = useState<'overview' | 'notes' | 'subscriptions' | 'schedule' | 'attendance' | 'results' | 'offers' | 'calendar' | 'recovery' | 'messages' | 'requests'>(allowedTabs[0] as any);
 
     // Data states
@@ -53,7 +55,7 @@ export const AdminProfile: React.FC = () => {
 
     // Student bookings
     const studentBookings = useMemo(() => {
-        if (role !== 'student' || !user) return [];
+        if (role !== UserRole.Student || !user) return [];
         return mockBookings.filter(b => b.studentId === user.id);
     }, [user, role]);
 
@@ -66,7 +68,7 @@ export const AdminProfile: React.FC = () => {
         offerService.getAll().then(setOffers);
 
         // Student-specific data
-        if (role === 'student' && user) {
+        if (role === UserRole.Student && user) {
             subscriptionService.getByStudent(user.id).then(sub => setMySubscription(sub || null));
             attendanceService.getByStudent(user.id).then(setStudentAttendance);
             resultsService.getByStudent(user.id).then(setStudentResults);
@@ -161,11 +163,11 @@ export const AdminProfile: React.FC = () => {
     const allTabs = [
         { key: 'overview' as const, label: 'Overview', icon: Activity },
         { key: 'notes' as const, label: 'Note Elevi', icon: FileText },
-        { key: 'subscriptions' as const, label: role === 'student' ? 'Abonamentul Meu' : 'Abonamente', icon: CreditCard },
-        { key: 'schedule' as const, label: role === 'coach' ? 'Programul Meu' : 'Orar Antrenori', icon: Calendar },
+        { key: 'subscriptions' as const, label: role === UserRole.Student ? 'Abonamentul Meu' : 'Abonamente', icon: CreditCard },
+        { key: 'schedule' as const, label: role === UserRole.Coach ? 'Programul Meu' : 'Orar Antrenori', icon: Calendar },
         { key: 'calendar' as const, label: 'Calendar Antrenamente', icon: Calendar },
-        { key: 'attendance' as const, label: role === 'student' ? 'Prezența Mea' : 'Prezență', icon: CheckCircle },
-        { key: 'results' as const, label: role === 'student' ? 'Rezultatele Mele' : 'Rezultate', icon: Trophy },
+        { key: 'attendance' as const, label: role === UserRole.Student ? 'Prezența Mea' : 'Prezență', icon: CheckCircle },
+        { key: 'results' as const, label: role === UserRole.Student ? 'Rezultatele Mele' : 'Rezultate', icon: Trophy },
         { key: 'recovery' as const, label: 'Recuperări', icon: RotateCcw },
         { key: 'offers' as const, label: 'Oferte Speciale', icon: Gift },
         { key: 'messages' as const, label: 'Mesaje', icon: MessageCircle },
@@ -174,77 +176,89 @@ export const AdminProfile: React.FC = () => {
     const tabs = allTabs.filter(tab => allowedTabs.includes(tab.key));
 
     return (
-        <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
+        <div className="min-h-screen bg-gray-50 dark:bg-[#0f172a] pb-24 font-sans text-gray-800 dark:text-gray-200">
             <PageHeader
-                title={<>{role === 'admin' ? 'ADMIN' : role === 'coach' ? 'COACH' : 'STUDENT'} <span className="text-host-cyan">DASHBOARD</span></>}
-                subtitle={role === 'admin' ? 'Comprehensive overview of platform activity and performance.' : role === 'coach' ? 'Training overview and student management.' : 'Your personal overview and progress.'}
+                title={<>{role === UserRole.Admin ? 'ADMIN' : role === UserRole.Coach ? 'COACH' : 'STUDENT'} <span className="text-host-cyan">DASHBOARD</span></>}
+                subtitle={role === UserRole.Admin ? 'Comprehensive overview of platform activity and performance.' : role === UserRole.Coach ? 'Training overview and student management.' : 'Your personal overview and progress.'}
             />
 
-            <div className="container mx-auto px-6 -mt-10 relative z-20 space-y-8">
+            <div className="container mx-auto px-6 max-w-7xl relative mt-8 z-20 space-y-8">
 
                 {/* Info Banner - Admin Only */}
-                {role === 'admin' && (
-                    <div className="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-host-blue p-6 rounded-r-xl shadow-sm flex items-start space-x-4">
-                        <div className="bg-host-blue p-2 rounded-full text-white shadow-lg shadow-blue-200/50 dark:shadow-none">
-                            <Shield className="w-6 h-6" />
+                {role === UserRole.Admin && (
+                    <div className="bg-cyan-50 dark:bg-cyan-500/5 border border-cyan-200 dark:border-cyan-500/20 px-5 py-4 rounded-2xl flex items-center space-x-4 shadow-sm">
+                        <div className="w-10 h-10 rounded-full bg-host-cyan/10 flex items-center justify-center text-host-cyan shrink-0">
+                            <Shield className="w-5 h-5" />
                         </div>
                         <div>
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-1">
+                            <h3 className="text-sm font-bold text-gray-800 dark:text-white">
                                 {t('admin_dashboard.welcome', { defaultValue: 'Admin Administration Zone' })}
                             </h3>
-                            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">
-                                {t('admin_dashboard.info', { defaultValue: 'This area is restricted to administrators. Here you can manage user roles, monitor platform activity, and configure system settings. Changes made here affect the entire platform.' })}
+                            <p className="text-gray-500 dark:text-gray-400 text-xs leading-relaxed mt-0.5">
+                                {t('admin_dashboard.info', { defaultValue: 'Manage user roles, monitor platform activity, and configure system settings.' })}
                             </p>
                         </div>
                     </div>
                 )}
 
                 {/* Management Quick Links - Admin Only */}
-                {role === 'admin' && (
+                {role === UserRole.Admin && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <Button onClick={() => window.location.href = '/admin/users'} variant="primary" className="h-auto py-4 justify-start text-left group hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                            <div className="bg-white/20 p-2 rounded-lg mr-4 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
-                                <Users className="w-6 h-6 animate-pulse" />
+                        <button
+                            onClick={() => window.location.href = '/admin/users'}
+                            className="w-full text-left bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 p-5 transition-all duration-300 hover:border-host-cyan/50 hover:shadow-cyan-900/10 transform hover:-translate-y-1 group flex items-center"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center text-host-cyan mr-4 shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                <Users size={22} />
                             </div>
                             <div>
-                                <div className="font-bold text-lg">Manage Users</div>
-                                <div className="text-xs opacity-70 font-normal">Roles, Status & Accounts</div>
+                                <div className="font-bold text-gray-900 dark:text-white group-hover:text-host-cyan transition-colors">Manage Users</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Roles, Status & Accounts</div>
                             </div>
-                        </Button>
-                        <Button onClick={() => window.location.href = '/admin/reservations'} variant="primary" className="h-auto py-4 justify-start text-left group hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                            <div className="bg-white/20 p-2 rounded-lg mr-4 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300">
-                                <Calendar className="w-6 h-6 animate-pulse" />
-                            </div>
-                            <div>
-                                <div className="font-bold text-lg">Reservations</div>
-                                <div className="text-xs opacity-70 font-normal">Bookings & Schedules</div>
-                            </div>
-                        </Button>
-                        <Button onClick={() => window.location.href = '/admin/announcements'} variant="primary" className="h-auto py-4 justify-start text-left group hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                            <div className="bg-white/20 p-2 rounded-lg mr-4 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300">
-                                <Bell className="w-6 h-6 animate-pulse" />
+                        </button>
+                        <button
+                            onClick={() => window.location.href = '/admin/reservations'}
+                            className="w-full text-left bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 p-5 transition-all duration-300 hover:border-host-cyan/50 hover:shadow-cyan-900/10 transform hover:-translate-y-1 group flex items-center"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center text-host-cyan mr-4 shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                <Calendar size={22} />
                             </div>
                             <div>
-                                <div className="font-bold text-lg">Announcements</div>
-                                <div className="text-xs opacity-70 font-normal">System & Broadcasts</div>
+                                <div className="font-bold text-gray-900 dark:text-white group-hover:text-host-cyan transition-colors">Reservations</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Bookings & Schedules</div>
                             </div>
-                        </Button>
+                        </button>
+                        <button
+                            onClick={() => window.location.href = '/admin/announcements'}
+                            className="w-full text-left bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 p-5 transition-all duration-300 hover:border-host-cyan/50 hover:shadow-cyan-900/10 transform hover:-translate-y-1 group flex items-center"
+                        >
+                            <div className="w-12 h-12 rounded-full bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center text-host-cyan mr-4 shrink-0 group-hover:scale-110 transition-transform duration-300">
+                                <Bell size={22} />
+                            </div>
+                            <div>
+                                <div className="font-bold text-gray-900 dark:text-white group-hover:text-host-cyan transition-colors">Announcements</div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">System & Broadcasts</div>
+                            </div>
+                        </button>
                     </div>
                 )}
 
                 {/* Tab Navigation */}
-                <div className="flex flex-wrap gap-2 justify-center mt-16 mb-8">
+                <div className="flex flex-wrap gap-2 mb-8">
                     {tabs.map(tab => (
-                        <Button
+                        <button
                             key={tab.key}
-                            variant="tab"
-                            active={activeTab === tab.key}
                             onClick={() => setActiveTab(tab.key)}
-                            className="whitespace-nowrap"
+                            className={clsx(
+                                "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all duration-200 whitespace-nowrap",
+                                activeTab === tab.key
+                                    ? "bg-host-cyan text-white shadow-md shadow-cyan-500/25"
+                                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-cyan-500/10 hover:text-host-cyan hover:border-cyan-300/50"
+                            )}
                         >
-                            <tab.icon size={16} />
+                            <tab.icon size={15} />
                             <span>{tab.label}</span>
-                        </Button>
+                        </button>
                     ))}
                 </div>
 
@@ -252,7 +266,7 @@ export const AdminProfile: React.FC = () => {
                 {/* Overview Tab */}
                 {activeTab === 'overview' && (
                     <div className="space-y-8 animate-in fade-in duration-500">
-                        {role === 'student' ? (
+                        {role === UserRole.Student ? (
                             <>
                                 <div className="rounded-2xl overflow-hidden shadow-2xl relative group">
                                     <div className="absolute inset-0 bg-gradient-to-t from-gray-900/90 via-transparent to-transparent z-10 pointer-events-none" />
@@ -297,30 +311,28 @@ export const AdminProfile: React.FC = () => {
                             </>
                         ) : (
                             <>
-                                <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border-t-4 border-t-host-cyan">
-                                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-6 flex items-center">
-                                        <Activity className="w-5 h-5 mr-2 text-host-cyan" />
+                                <div>
+                                    <h3 className="text-xs font-extrabold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-4 flex items-center">
+                                        <Activity className="w-4 h-4 mr-2" />
                                         Platform Statistics
                                     </h3>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                         {stats.map((stat, idx) => (
-                                            <div key={idx} className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
-                                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">{stat.label}</p>
-                                                <div className="flex items-center justify-between">
-                                                    <div>
-                                                        <p className={`text-2xl font-extrabold ${stat.color} dark:text-white`}>{stat.value}</p>
-                                                        <p className="text-xs text-gray-400 mt-1">{stat.sub}</p>
-                                                    </div>
-                                                    <div className={`p-2 rounded-lg bg-white dark:bg-gray-700 shadow-sm ${stat.color}`}>
-                                                        <stat.icon size={20} />
-                                                    </div>
+                                            <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-700/60 flex items-center justify-between hover:-translate-y-1 transition-transform duration-300">
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">{stat.label}</p>
+                                                    <h3 className="text-3xl font-extrabold text-gray-900 dark:text-white leading-none">{stat.value}</h3>
+                                                    <p className="text-xs text-gray-400 mt-1">{stat.sub}</p>
+                                                </div>
+                                                <div className={`w-14 h-14 rounded-full bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center shrink-0 ${stat.color}`}>
+                                                    <stat.icon size={24} />
                                                 </div>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
 
-                                <Card header="Recent Logins & Activity" className="border-t-4 border-t-host-blue">
+                                <Card header="Recent Logins & Activity" className="border border-gray-100 dark:border-gray-700/60 shadow-xl rounded-2xl">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left border-collapse">
                                             <thead>
@@ -425,20 +437,22 @@ export const AdminProfile: React.FC = () => {
 
                 {/* Subscriptions Tab */}
                 {activeTab === 'subscriptions' && (
-                    role === 'student' ? (
+                    role === UserRole.Student ? (
                         <div className="space-y-6">
                             {mySubscription ? (() => {
                                 const remaining = mySubscription.sessionsTotal - mySubscription.sessionsUsed;
                                 const percent = Math.round((mySubscription.sessionsUsed / mySubscription.sessionsTotal) * 100);
                                 const isExpired = new Date(mySubscription.expiryDate) < new Date();
                                 return (
-                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                        <div className="bg-gradient-to-r from-host-blue to-host-cyan p-6 text-white">
-                                            <div className="flex items-center space-x-3 mb-2">
-                                                <CreditCard size={28} />
-                                                <h2 className="text-2xl font-bold">Abonamentul Meu</h2>
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+                                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
+                                            <div className="w-10 h-10 rounded-full bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center text-host-cyan shrink-0">
+                                                <CreditCard size={20} />
                                             </div>
-                                            <p className="text-blue-100 text-sm">Abonament activ • {mySubscription.studentName}</p>
+                                            <div>
+                                                <h2 className="text-lg font-bold text-gray-800 dark:text-white">Abonamentul Meu</h2>
+                                                <p className="text-xs text-gray-500 dark:text-gray-400">Abonament activ • {mySubscription.studentName}</p>
+                                            </div>
                                         </div>
                                         <div className="p-6 space-y-6">
                                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -536,7 +550,7 @@ export const AdminProfile: React.FC = () => {
                 {/* Schedule & Attendance Tab (Coach View) */}
                 {activeTab === 'schedule' && (
                     <div className="space-y-8 animate-in fade-in duration-500">
-                        {role === 'coach' ? (
+                        {role === UserRole.Coach ? (
                             <>
                                 <div className="flex justify-between items-center mb-6">
                                     <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center">
@@ -779,15 +793,18 @@ export const AdminProfile: React.FC = () => {
                 {activeTab === 'requests' && (
                     <div className="space-y-8 animate-in fade-in duration-500">
                         {/* Trials */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                            <div className="bg-purple-600 p-6 text-white flex justify-between items-center">
-                                <div>
-                                    <h2 className="text-xl font-bold flex items-center">
-                                        <Star className="mr-2" /> Cereri Încercare (Trial)
-                                    </h2>
-                                    <p className="text-purple-100 text-sm mt-1">Viitori elevi programați pentru evaluare</p>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-500 shrink-0">
+                                        <Star size={18} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-800 dark:text-white">Cereri Încercare (Trial)</h2>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Viitori elevi programați pentru evaluare</p>
+                                    </div>
                                 </div>
-                                <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold">3 Cereri</span>
+                                <span className="bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 px-3 py-1 rounded-full text-xs font-bold">3 Cereri</span>
                             </div>
                             <div className="p-0">
                                 <table className="w-full text-left">
@@ -818,15 +835,18 @@ export const AdminProfile: React.FC = () => {
                         </div>
 
                         {/* Recovery */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                            <div className="bg-orange-500 p-6 text-white flex justify-between items-center">
-                                <div>
-                                    <h2 className="text-xl font-bold flex items-center">
-                                        <RotateCcw className="mr-2" /> Cereri Recuperare
-                                    </h2>
-                                    <p className="text-orange-100 text-sm mt-1">Elevi care recuperează absențe</p>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 rounded-full bg-yellow-50 dark:bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
+                                        <RotateCcw size={18} />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-800 dark:text-white">Cereri Recuperare</h2>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Elevi care recuperează absențe</p>
+                                    </div>
                                 </div>
-                                <span className="bg-white/20 px-3 py-1 rounded-full text-sm font-bold">5 Cereri</span>
+                                <span className="bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-3 py-1 rounded-full text-xs font-bold">5 Cereri</span>
                             </div>
                             <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {[1, 2, 3, 4, 5].map(i => (
@@ -848,7 +868,7 @@ export const AdminProfile: React.FC = () => {
 
                 {/* Attendance Tab */}
                 {activeTab === 'attendance' && (
-                    role === 'student' ? (
+                    role === UserRole.Student ? (
                         <div className="space-y-6">
                             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                                 <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
@@ -990,15 +1010,17 @@ export const AdminProfile: React.FC = () => {
 
                 {/* Results Tab */}
                 {activeTab === 'results' && (
-                    role === 'student' ? (
+                    role === UserRole.Student ? (
                         <div className="space-y-6">
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-6 text-white">
-                                    <div className="flex items-center space-x-3 mb-2">
-                                        <Trophy size={28} />
-                                        <h2 className="text-2xl font-bold">Rezultatele Mele</h2>
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+                                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
+                                    <div className="w-10 h-10 rounded-full bg-yellow-50 dark:bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
+                                        <Trophy size={20} />
                                     </div>
-                                    <p className="text-yellow-100 text-sm">{studentResults.length} rezultate înregistrate</p>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-800 dark:text-white">Rezultatele Mele</h2>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">{studentResults.length} rezultate înregistrate</p>
+                                    </div>
                                 </div>
                                 {studentResults.length > 0 ? (
                                     <div className="p-6 space-y-6">
@@ -1106,7 +1128,7 @@ export const AdminProfile: React.FC = () => {
                 )}
 
                 {/* Calendar Tab (Student only) */}
-                {activeTab === 'calendar' && role === 'student' && (() => {
+                {activeTab === 'calendar' && role === UserRole.Student && (() => {
                     const today = new Date();
                     const year = calendarMonth.getFullYear();
                     const month = calendarMonth.getMonth();
@@ -1119,13 +1141,15 @@ export const AdminProfile: React.FC = () => {
 
                     return (
                         <div className="space-y-6">
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                <div className="bg-gradient-to-r from-host-blue to-host-cyan p-6 text-white">
-                                    <div className="flex items-center space-x-3 mb-2">
-                                        <Calendar size={28} />
-                                        <h2 className="text-2xl font-bold">Calendar Antrenamente</h2>
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
+                                <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
+                                    <div className="w-10 h-10 rounded-full bg-cyan-50 dark:bg-cyan-500/10 flex items-center justify-center text-host-cyan shrink-0">
+                                        <Calendar size={20} />
                                     </div>
-                                    <p className="text-blue-100 text-sm">Programează-ți antrenamentele (minim 1 zi în avans)</p>
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-800 dark:text-white">Calendar Antrenamente</h2>
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">Programează-ți antrenamentele (minim 1 zi în avans)</p>
+                                    </div>
                                 </div>
                                 <div className="p-6">
                                     <div className="flex items-center justify-between mb-6">
@@ -1240,7 +1264,7 @@ export const AdminProfile: React.FC = () => {
                 })()}
 
                 {/* Recovery Tab (Student only) */}
-                {activeTab === 'recovery' && role === 'student' && (
+                {activeTab === 'recovery' && role === UserRole.Student && (
                     <div className="space-y-6">
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                             <div className="bg-gradient-to-r from-yellow-500 to-orange-500 p-6 text-white">

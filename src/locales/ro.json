@@ -8,10 +8,35 @@
         "our_team": "ECHIPA NOASTRĂ",
         "dashboard": "DASHBOARD",
         "login": "AUTENTIFICARE",
-        "logout": "DECONECTARE",
-        "faq": "ÎNTREBĂRI"
+        "logout": "Deconectare",
+        "faq": "FAQ",
+        "connect": "Conectare",
+        "cart": "Coș",
+        "messages": "Mesaje",
+        "language": "Limbă",
+        "theme": "Mod întunecat",
+        "attendance": "Prezență",
+        "student": "Elev",
+        "coach": "Antrenor"
+    },
+    "dropdown": {
+        "my_profile": "Profilul Meu",
+        "my_subscription": "Abonamentul Meu",
+        "schedule": "Program",
+        "results": "Rezultate",
+        "settings": "Setări",
+        "training_schedule": "Program Antrenament",
+        "attendance": "Prezență",
+        "student_results": "Rezultatele Elevilor",
+        "admin_dashboard": "Panou Administrator",
+        "manage_users": "Gestionează Utilizatori",
+        "reservations": "Rezervări",
+        "reports": "Rapoarte & Statistici",
+        "system_settings": "Setări Sistem",
+        "announcements": "Anunțuri"
     },
     "hero": {
+        "title": "Atlantis Swim School",
         "platform_title": "Școală de înot – Platformă",
         "subtitle": "Management Utilizatori • Progres Cursuri • Acces Antrenori Licențiați",
         "search_placeholder": "Caută: cursuri, elevi sau antrenori...",
@@ -109,24 +134,12 @@
         "admin": "Admin"
     },
     "coaches": {
-        "c1": {
-            "specialization": "Manager"
-        },
-        "c2": {
-            "specialization": "Antrenor Înot"
-        },
-        "c3": {
-            "specialization": "Antrenor Înot"
-        },
-        "c4": {
-            "specialization": "Antrenor Înot"
-        },
-        "c5": {
-            "specialization": "Antrenor Înot"
-        },
-        "c6": {
-            "specialization": "Antrenor Înot"
-        }
+        "c1": { "specialization": "Manager" },
+        "c2": { "specialization": "Antrenor Înot" },
+        "c3": { "specialization": "Antrenor Înot" },
+        "c4": { "specialization": "Antrenor Înot" },
+        "c5": { "specialization": "Antrenor Înot" },
+        "c6": { "specialization": "Antrenor Înot" }
     },
     "language": {
         "en": "English",
@@ -156,7 +169,7 @@
             "level": "Avansat"
         },
         "crs3": {
-            "title": "Măiestrie Spate",
+            "title": "Măiestria Stilului Spate",
             "description": "Perfecționează-ți stilul spate.",
             "level": "Intermediar"
         }
@@ -201,16 +214,16 @@
             "self_only": "Poți marca doar prezența ta, direct din calendar.",
             "calendar_date": "Data din calendar",
             "select_status": "Alege statusul",
-            "confirm_choice": "Accept că aceasta este alegerea mea (prezent/absent).",
-            "accept": "Accept",
+            "confirm_choice": "Confirm că aceasta este alegerea mea (prezent/absent).",
+            "accept": "Confirmă",
             "training_day": "antrenament",
             "saving": "Se salvează...",
             "saved_success": "Prezența a fost salvată cu succes.",
             "already_marked": "Pentru această dată ai deja o prezență salvată.",
             "select_status_error": "Alege mai întâi Prezent sau Absent.",
-            "accept_error": "Bifează mai întâi Accept pentru confirmare.",
-            "pending_teacher_confirmation": "În așteptarea profesorului",
-            "confirmed_by_teacher": "Confirmat de profesor"
+            "accept_error": "Bifează confirmarea pentru a continua.",
+            "pending_teacher_confirmation": "Așteaptă confirmarea antrenorului",
+            "confirmed_by_teacher": "Confirmat de antrenor"
         },
         "results": {
             "title": "Rezultatele Mele",
@@ -226,14 +239,14 @@
             "title": "Sesiuni de Recuperare",
             "session": "Sesiune de recuperare",
             "no_sessions": "Nu există sesiuni de recuperare programate.",
-            "active_credits": "Credite disponibile",
+            "active_credits": "Recuperări disponibile",
             "pending_requests": "Cereri în așteptare",
             "confirmed_requests": "Cereri confirmate",
-            "instructions": "Alege o zi disponibilă din calendar și trimite cererea de recuperare. Cererea va fi confirmată ulterior de profesor.",
+            "instructions": "Alege o zi disponibilă din calendar și trimite cererea de recuperare. Cererea va fi confirmată ulterior de antrenor.",
             "available": "disponibil",
             "selected_date": "Data selectată: {{date}}",
             "no_date_selected": "Nu ai selectat încă o dată.",
-            "send_request": "Trimite cerere recuperare",
+            "send_request": "Trimite cerere de recuperare",
             "sending": "Se trimite...",
             "request_sent": "Cererea de recuperare a fost trimisă și este în așteptare.",
             "select_date_error": "Selectează o dată disponibilă.",
@@ -297,13 +310,13 @@
             "no_group_sessions": "Nu există sesiuni de grup pentru marcarea prezenței.",
             "no_individual_sessions": "Nu există sesiuni individuale pentru marcarea prezenței.",
             "nothing_to_confirm": "Nu există elevi de confirmat pentru slotul selectat.",
-            "confirmation_success": "Confirmare efectuată de profesor: {{count}} elev(i) la ora {{hour}}.",
-            "mark_all_present_success": "Au fost marcați prezent {{count}} elevi.",
-            "session_confirmed_by_coach": "Sesiune confirmată de profesor: {{count}} elevi la ora {{hour}}.",
+            "confirmation_success": "Confirmare efectuată: {{count}} elev(i) la ora {{hour}}.",
+            "mark_all_present_success": "Au fost marcați ca prezenți {{count}} elevi.",
+            "session_confirmed_by_coach": "Sesiune confirmată de antrenor: {{count}} elevi la ora {{hour}}.",
             "confirm_hour": "Ora pentru confirmare",
             "awaiting_coach_confirmation": "În așteptare",
             "confirmed": "Confirmat",
-            "confirmed_by_you": "Confirmat de dvs",
+            "confirmed_by_you": "Confirmat de tine",
             "action": {
                 "mark_present": "Prezent",
                 "mark_absent": "Absent",
@@ -339,7 +352,7 @@
             "no_sessions": "Nu există sesiuni individuale."
         },
         "count": {
-            "title": "Număr Copii per Oră (Din Programări)",
+            "title": "Număr de Copii pe Oră (Din Programări)",
             "week_schedule": "Ocupare Orar Săptămânal",
             "headers": {
                 "day": "Zi",
@@ -400,12 +413,17 @@
         "month": "/lună",
         "students_enrolled": "{{enrolled}} / {{capacity}} Elevi",
         "coach": "Antrenor: {{name}}",
-        "select_course": "Selectează Cursul"
+        "select_course": "Selectează Cursul",
+        "plans_title": "ABONAMENTE",
+        "plans_title_highlight": "& PREȚURI",
+        "plans_subtitle": "Alege abonamentul potrivit pentru tine. Prețurile sunt în lei moldovenești (MDL).",
+        "added_to_cart": "ADĂUGAT ({{count}})"
     },
     "coaches_page": {
         "title": "ANTRENORI",
         "title_highlight": "EXPERȚI",
-        "subtitle": "Cunoaște profesioniștii dedicați să te ajute să îți atingi obiectivele de înot."
+        "subtitle": "Cunoaște profesioniștii dedicați să te ajute să îți atingi obiectivele de înot.",
+        "experience": "{{count}} ani de experiență"
     },
     "students_page": {
         "title": "ELEVI",
@@ -421,19 +439,44 @@
         "step_1_title": "Selectează un Antrenor",
         "step_2_title": "Alege Data și Ora",
         "step_3_title": "Confirmă Înscrierea",
-        "confirm_subtitle": "Te rugăm să verifici detaliile rezervării.",
+        "confirm_subtitle": "Verifică detaliile rezervării înainte de confirmare.",
         "course": "Curs",
         "coach": "Antrenor",
         "date": "Dată",
         "time": "Oră",
         "cancel": "Anulează",
         "back": "Înapoi",
-        "next": "Următorul",
+        "next": "Continuă",
         "confirm_booking": "Confirmă Rezervarea",
         "processing": "Se procesează...",
         "success_title": "Înscriere Reușită!",
         "success_message": "Te-ai înscris cu succes la {{course}}.",
         "close": "Închide"
+    },
+    "search": {
+        "hint": "Caută cursuri, antrenori sau elevi...",
+        "no_results": "Niciun rezultat pentru \"{{query}}\"",
+        "section_courses": "Cursuri",
+        "section_coaches": "Antrenori",
+        "section_students": "Elevi",
+        "close_hint": "Apasă ESC pentru a închide",
+        "results_count": "{{count}} rezultate găsite"
+    },
+    "faq": {
+        "title": "Întrebări",
+        "title_highlight": "frecvente",
+        "subtitle": "Găsește răspunsuri la cele mai comune întrebări despre cursurile de înot.",
+        "contact_text": "Ai o altă întrebare? Contactează echipa noastră prin",
+        "contact_link": "trimiterea unui email",
+        "contact_suffix": "și îți vom răspunde cât mai curând.",
+        "q1": { "q": "Unde au loc antrenamentele?", "a": "Antrenamentele noastre au loc în incinta zonei Aquacenter din cadrul Chișinău arena." },
+        "q2": { "q": "Cât durează un antrenament?", "a": "Un antrenament de grup sau individual durează în medie 45 de minute." },
+        "q3": { "q": "De la ce vârstă poate începe un copil să înoate?", "a": "Copiii pot începe inițierea în înot de la 4 ani, într-un cadru sigur și adaptat nevoilor lor." },
+        "q4": { "q": "În cât timp se învață un copil a înota?", "a": "Fiecare copil are ritmul său de progres. În general, bazele înotului se deprind după 2–3 luni de antrenamente regulate." },
+        "q5": { "q": "Câți copii sunt în grupe?", "a": "Grupele sunt formate din 12–16 copii, pentru ca fiecare să primească atenția necesară din partea antrenorului." },
+        "q6": { "q": "Cum pot înscrie copilul la antrenamente?", "a": "Înscrierea se face telefonic sau online, prin completarea formularului de pe site." },
+        "q7": { "q": "Trebuie adus echipament special?", "a": "Da, fiecare sportiv are nevoie de costum de baie, cască, ochelari, prosop și papuci. Restul echipamentului este asigurat de club." },
+        "q8": { "q": "Se pot recupera antrenamentele lipsă?", "a": "Antrenamentele de grup se pot recupera, doar dacă sunt pe motiv de boală și cu programare prealabilă. Recuperarea e valabilă doar pe perioada abonamentului activ.\n\nAntrenamentele anulate cu o zi înainte pot fi reprogramate.\n\nAntrenamentele anulate în ziua programării nu se recuperează." }
     },
     "map": {
         "school_name": "SwimSchool – Școală de Înot",

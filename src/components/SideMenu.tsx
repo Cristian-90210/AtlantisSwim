@@ -22,6 +22,7 @@ import {
     Settings,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { UserRole, getRoleLabel } from '../types';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import { Logo } from '../components/Logo';
@@ -44,7 +45,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
     // Authenticated: role-specific dashboard + relevant links
     const links = user
         ? [
-            ...(user.role === 'student' ? [
+            ...(user.role === UserRole.Student ? [
                 { to: '/student', label: t('header.dashboard'), icon: LayoutDashboard },
                 { to: '/prezenta', label: t('header.attendance', { defaultValue: 'Prezență' }), icon: ClipboardList },
                 { to: '/student/profile', label: t('dropdown.my_profile', { defaultValue: 'My Profile' }), icon: UserCircle },
@@ -53,7 +54,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
                 { to: '/student/results', label: t('dropdown.results', { defaultValue: 'Results' }), icon: Trophy },
                 { to: '/student/settings', label: t('dropdown.settings', { defaultValue: 'Settings' }), icon: Settings },
             ] : []),
-            ...(user.role === 'coach' ? [
+            ...(user.role === UserRole.Coach ? [
                 { to: '/coach', label: t('header.dashboard'), icon: LayoutDashboard },
                 { to: '/coach/profile', label: t('dropdown.my_profile', { defaultValue: 'My Profile' }), icon: UserCircle },
                 { to: '/coach/schedule', label: t('dropdown.training_schedule', { defaultValue: 'Training Schedule' }), icon: Calendar },
@@ -61,7 +62,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
                 { to: '/coach/results', label: t('dropdown.student_results', { defaultValue: 'Student Results' }), icon: Trophy },
                 { to: '/coach/settings', label: t('dropdown.settings', { defaultValue: 'Settings' }), icon: Settings },
             ] : []),
-            ...(user.role === 'admin' ? [
+            ...(user.role === UserRole.Admin ? [
                 { to: '/admin', label: t('header.dashboard'), icon: LayoutDashboard },
                 { to: '/admin/users', label: t('dropdown.manage_users', { defaultValue: 'Manage Users' }), icon: Users },
                 { to: '/admin/reservations', label: t('dropdown.reservations', { defaultValue: 'Reservations' }), icon: BookOpen },
@@ -75,7 +76,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
             { to: '/', label: t('header.home'), icon: Home },
             { to: '/courses', label: t('header.courses'), icon: BookOpen },
             { to: '/coaches', label: t('header.our_team'), icon: User },
-            { to: '/faq', label: t('header.faq', { defaultValue: 'Întrebări' }), icon: BookOpen },
+            { to: '/faq', label: t('header.faq'), icon: BookOpen },
         ];
 
     const actionButtonClassName =
@@ -148,7 +149,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
                                 <p className="truncate text-sm font-bold text-white">{user.name}</p>
                                 <p className="truncate text-xs text-slate-300">{user.email}</p>
                                 <span className="mt-1 inline-block rounded-full bg-cyan-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-cyan-200">
-                                    {user.role}
+                                    {getRoleLabel(user.role)}
                                 </span>
                             </div>
                         </div>
@@ -158,23 +159,47 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
                 {/* Navigation */}
                 <div className="flex-1 overflow-y-auto px-4 py-4">
                     <nav className="space-y-1.5" aria-label="Navigare mobilă">
-                    {links.map((link: any) => (
-                        <NavLink
-                            key={link.to}
-                            to={link.to}
-                            onClick={onClose}
-                            className={({ isActive }) => clsx(
-                                'flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-300',
-                                isActive
-                                    ? 'bg-cyan-300/15 font-bold text-cyan-200 ring-1 ring-cyan-300/20'
-                                    : 'text-slate-100 hover:bg-white/10 hover:text-cyan-200'
-                            )}
-                            aria-label={link.label}
-                        >
-                            <link.icon size={20} />
-                            <span>{link.label}</span>
-                        </NavLink>
-                    ))}
+                    {links.map((link: any) => {
+                        if (link.to.startsWith('#')) {
+                            return (
+                                <button
+                                    key={link.to}
+                                    onClick={() => {
+                                        onClose();
+                                        const id = link.to.substring(1);
+                                        if (location.pathname === '/') {
+                                            document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+                                        } else {
+                                            navigate('/');
+                                            setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), 300);
+                                        }
+                                    }}
+                                    className="flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-300 text-slate-100 hover:bg-white/10 hover:text-cyan-200 w-full text-left"
+                                    aria-label={link.label}
+                                >
+                                    <link.icon size={20} />
+                                    <span>{link.label}</span>
+                                </button>
+                            );
+                        }
+                        return (
+                            <NavLink
+                                key={link.to}
+                                to={link.to}
+                                onClick={onClose}
+                                className={({ isActive }) => clsx(
+                                    'flex items-center space-x-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-300',
+                                    isActive
+                                        ? 'bg-cyan-300/15 font-bold text-cyan-200 ring-1 ring-cyan-300/20'
+                                        : 'text-slate-100 hover:bg-white/10 hover:text-cyan-200'
+                                )}
+                                aria-label={link.label}
+                            >
+                                <link.icon size={20} />
+                                <span>{link.label}</span>
+                            </NavLink>
+                        );
+                    })}
                     </nav>
 
                     <div className="my-4 border-t border-white/10" />

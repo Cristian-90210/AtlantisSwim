@@ -34,6 +34,10 @@ namespace AtlantisSwim.Api.Controller
         public IActionResult Create([FromBody] SwimmingServiceDto data)
         {
             var response = _swimmingService.CreateSwimmingServiceAction(data);
+
+            if (!response.IsSuccess)
+                return BadRequest(response);
+
             return Ok(response);
         }
 
@@ -41,6 +45,10 @@ namespace AtlantisSwim.Api.Controller
         public IActionResult Update([FromBody] SwimmingServiceDto data)
         {
             var response = _swimmingService.UpdateSwimmingServiceAction(data);
+
+            if (!response.IsSuccess)
+                return BadRequest(response);
+
             return Ok(response);
         }
 
@@ -48,6 +56,10 @@ namespace AtlantisSwim.Api.Controller
         public IActionResult Delete(int id)
         {
             var response = _swimmingService.DeleteSwimmingServiceAction(id);
+
+            if (!response.IsSuccess)
+                return BadRequest(response);
+
             return Ok(response);
         }
     }

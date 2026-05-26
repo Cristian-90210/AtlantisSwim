@@ -3,6 +3,7 @@ import { Card } from '../components/Card';
 import { CTAButton } from '../components/CTAButton';
 import { PageHeader } from '../components/PageHeader';
 import { Table, TableRow } from '../components/TableRow';
+import { UserRole } from '../types';
 import type { Student } from '../types';
 import { studentService } from '../services/api';
 import { Trash2, Plus, X, Search, Edit2, CheckCircle } from 'lucide-react';
@@ -83,7 +84,7 @@ export const Students: React.FC = () => {
                     age: Number(formData.age),
                     level: formData.level,
                     status: 'Active',
-                    role: 'student'
+                    role: UserRole.Student
                 };
                 await studentService.create(newStudent);
             }

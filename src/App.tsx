@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { UserRole } from './types';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -33,6 +34,8 @@ import { AdminProfile } from './pages/AdminProfile';
 import { UsersManagement } from './pages/admin/Users';
 import { Reservations } from './pages/admin/Reservations';
 import { Announcements } from './pages/admin/Announcements';
+import { AdminCourses } from './pages/admin/Courses';
+import { AdminServices } from './pages/admin/Services';
 import { Login } from './pages/Login';
 import { CartPage } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
@@ -44,7 +47,7 @@ import { ServerStatus } from './pages/ServerStatus';
 import { Attendance } from './pages/Attendance';
 
 // Protected Route Wrapper
-const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: string[] }> = ({ children, allowedRoles }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserRole[] }> = ({ children, allowedRoles }) => {
   const { isAuthenticated, user } = useAuth();
   const location = useLocation();
 
@@ -78,100 +81,110 @@ function App() {
                     <Route index element={<Landing />} />
 
                     <Route path="student" element={
-                      <ProtectedRoute allowedRoles={['student']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Student]}>
                         <StudentDashboard />
                       </ProtectedRoute>
                     } />
                     <Route path="student/profile" element={
-                      <ProtectedRoute allowedRoles={['student']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Student]}>
                         <StudentProfile />
                       </ProtectedRoute>
                     } />
                     <Route path="student/subscription" element={
-                      <ProtectedRoute allowedRoles={['student']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Student]}>
                         <StudentSubscription />
                       </ProtectedRoute>
                     } />
                     <Route path="student/schedule" element={
-                      <ProtectedRoute allowedRoles={['student']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Student]}>
                         <StudentSchedule />
                       </ProtectedRoute>
                     } />
                     <Route path="student/results" element={
-                      <ProtectedRoute allowedRoles={['student']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Student]}>
                         <StudentResults />
                       </ProtectedRoute>
                     } />
                     <Route path="student/settings" element={
-                      <ProtectedRoute allowedRoles={['student']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Student]}>
                         <StudentSettings />
                       </ProtectedRoute>
                     } />
                     <Route path="student/chat" element={
-                      <ProtectedRoute allowedRoles={['student']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Student]}>
                         <StudentChat />
                       </ProtectedRoute>
                     } />
                     <Route path="prezenta" element={
-                      <ProtectedRoute allowedRoles={['student']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Student]}>
                         <Attendance />
                       </ProtectedRoute>
                     } />
                     <Route path="coach" element={
-                      <ProtectedRoute allowedRoles={['coach']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Coach]}>
                         <CoachDashboard />
                       </ProtectedRoute>
                     } />
                     <Route path="coach/profile" element={
-                      <ProtectedRoute allowedRoles={['coach']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Coach]}>
                         <CoachProfile />
                       </ProtectedRoute>
                     } />
                     <Route path="coach/schedule" element={
-                      <ProtectedRoute allowedRoles={['coach']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Coach]}>
                         <CoachTrainingSchedule />
                       </ProtectedRoute>
                     } />
                     <Route path="coach/attendance" element={
-                      <ProtectedRoute allowedRoles={['coach']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Coach]}>
                         <CoachAttendance />
                       </ProtectedRoute>
                     } />
                     <Route path="coach/results" element={
-                      <ProtectedRoute allowedRoles={['coach']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Coach]}>
                         <CoachStudentResults />
                       </ProtectedRoute>
                     } />
                     <Route path="coach/chat" element={
-                      <ProtectedRoute allowedRoles={['coach']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Coach]}>
                         <CoachChat />
                       </ProtectedRoute>
                     } />
                     <Route path="coach/settings" element={
-                      <ProtectedRoute allowedRoles={['coach']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Coach]}>
                         <CoachSettings />
                       </ProtectedRoute>
                     } />
                     <Route path="admin" element={
-                      <ProtectedRoute allowedRoles={['admin']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Admin]}>
                         <AdminProfile />
                       </ProtectedRoute>
                     } />
 
                     {/* Admin Management Routes */}
                     <Route path="admin/users" element={
-                      <ProtectedRoute allowedRoles={['admin']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Admin]}>
                         <UsersManagement />
                       </ProtectedRoute>
                     } />
                     <Route path="admin/reservations" element={
-                      <ProtectedRoute allowedRoles={['admin']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Admin]}>
                         <Reservations />
                       </ProtectedRoute>
                     } />
                     <Route path="admin/announcements" element={
-                      <ProtectedRoute allowedRoles={['admin']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Admin]}>
                         <Announcements />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="admin/courses" element={
+                      <ProtectedRoute allowedRoles={[UserRole.Admin]}>
+                        <AdminCourses />
+                      </ProtectedRoute>
+                    } />
+                    <Route path="admin/services" element={
+                      <ProtectedRoute allowedRoles={[UserRole.Admin]}>
+                        <AdminServices />
                       </ProtectedRoute>
                     } />
 
@@ -185,7 +198,7 @@ function App() {
 
                     {/* Admin Only Routes */}
                     <Route path="students" element={
-                      <ProtectedRoute allowedRoles={['admin', 'coach']}>
+                      <ProtectedRoute allowedRoles={[UserRole.Admin, UserRole.Coach]}>
                         <Students />
                       </ProtectedRoute>
                     } />

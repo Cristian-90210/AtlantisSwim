@@ -48,7 +48,6 @@ node_modules/
 .pnp.cjs
 .pnp.data.json
 .yarn-integrity
-package-lock.json
 yarn.lock
 
 #################################
@@ -104,6 +103,14 @@ local.settings.json
 *.jfm
 launchSettings.json
 *.DotSettings
+
+#################################
+# AI tool settings (pot contine credentiale)
+#################################
+.claude/
+.qwen/
+*/.claude/
+**/.claude/
 
 #################################
 # Misc

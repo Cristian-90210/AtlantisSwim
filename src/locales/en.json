@@ -8,10 +8,35 @@
         "our_team": "OUR TEAM",
         "dashboard": "DASHBOARD",
         "login": "LOGIN",
-        "logout": "LOGOUT",
-        "faq": "FAQ"
+        "logout": "Sign Out",
+        "faq": "FAQ",
+        "connect": "Sign In",
+        "cart": "Cart",
+        "messages": "Messages",
+        "language": "Language",
+        "theme": "Dark Mode",
+        "attendance": "Attendance",
+        "student": "Student",
+        "coach": "Coach"
+    },
+    "dropdown": {
+        "my_profile": "My Profile",
+        "my_subscription": "My Subscription",
+        "schedule": "Schedule",
+        "results": "Results",
+        "settings": "Settings",
+        "training_schedule": "Training Schedule",
+        "attendance": "Attendance",
+        "student_results": "Student Results",
+        "admin_dashboard": "Admin Dashboard",
+        "manage_users": "Manage Users",
+        "reservations": "Reservations",
+        "reports": "Reports & Statistics",
+        "system_settings": "System Settings",
+        "announcements": "Announcements"
     },
     "hero": {
+        "title": "Atlantis Swim School",
         "platform_title": "Swimming School Platform",
         "subtitle": "User Management • Course Progress • Licensed Coach Access",
         "search_placeholder": "Search: courses, students or coaches...",
@@ -109,24 +134,12 @@
         "admin": "Admin"
     },
     "coaches": {
-        "c1": {
-            "specialization": "Manager"
-        },
-        "c2": {
-            "specialization": "Swimming Coach"
-        },
-        "c3": {
-            "specialization": "Swimming Coach"
-        },
-        "c4": {
-            "specialization": "Swimming Coach"
-        },
-        "c5": {
-            "specialization": "Swimming Coach"
-        },
-        "c6": {
-            "specialization": "Swimming Coach"
-        }
+        "c1": { "specialization": "Manager" },
+        "c2": { "specialization": "Swimming Coach" },
+        "c3": { "specialization": "Swimming Coach" },
+        "c4": { "specialization": "Swimming Coach" },
+        "c5": { "specialization": "Swimming Coach" },
+        "c6": { "specialization": "Swimming Coach" }
     },
     "language": {
         "en": "English",
@@ -186,7 +199,7 @@
             "bookings": "Bookings",
             "attendance": "Attendance",
             "results": "Results",
-            "recovery": "Recovery",
+            "recovery": "Make-ups",
             "messages": "Messages"
         },
         "attendance": {
@@ -195,21 +208,21 @@
             "absent": "Absent",
             "absent_medical": "Medical Absent",
             "late": "Late",
-            "recovery": "Recovery",
+            "recovery": "Make-up",
             "no_records": "No attendance records found.",
             "booking": "Booking",
             "self_only": "You can only mark your own attendance directly from the calendar.",
             "calendar_date": "Calendar date",
             "select_status": "Choose status",
-            "confirm_choice": "I accept that this is my choice (present/absent).",
-            "accept": "Accept",
+            "confirm_choice": "I confirm this is my attendance choice (present/absent).",
+            "accept": "Confirm",
             "training_day": "training",
             "saving": "Saving...",
             "saved_success": "Attendance saved successfully.",
             "already_marked": "You already marked attendance for this date.",
             "select_status_error": "Choose Present or Absent first.",
-            "accept_error": "Tick Accept to confirm your choice.",
-            "pending_teacher_confirmation": "Waiting for coach",
+            "accept_error": "Check the confirmation box to proceed.",
+            "pending_teacher_confirmation": "Awaiting coach confirmation",
             "confirmed_by_teacher": "Confirmed by coach"
         },
         "results": {
@@ -223,24 +236,24 @@
             "no_results": "No results found."
         },
         "recovery": {
-            "title": "Recovery Sessions",
-            "session": "Recovery session",
-            "no_sessions": "No recovery sessions scheduled.",
-            "active_credits": "Available credits",
+            "title": "Make-up Sessions",
+            "session": "Make-up session",
+            "no_sessions": "No make-up sessions scheduled.",
+            "active_credits": "Available make-ups",
             "pending_requests": "Pending requests",
             "confirmed_requests": "Confirmed requests",
-            "instructions": "Pick an available day in the calendar and send a recovery request. The coach will confirm it afterwards.",
+            "instructions": "Pick an available day in the calendar and send a make-up request. The coach will confirm it afterwards.",
             "available": "available",
             "selected_date": "Selected date: {{date}}",
             "no_date_selected": "No date selected yet.",
-            "send_request": "Send recovery request",
+            "send_request": "Send make-up request",
             "sending": "Sending...",
-            "request_sent": "Recovery request sent and waiting for confirmation.",
-            "select_date_error": "Select an available date.",
-            "date_not_available": "Selected date is not available for recovery.",
-            "requests_title": "Recovery requests",
+            "request_sent": "Make-up request sent and awaiting confirmation.",
+            "select_date_error": "Please select an available date.",
+            "date_not_available": "The selected date is not available for a make-up.",
+            "requests_title": "Make-up requests",
             "request_made": "Requested on",
-            "no_requests": "You don't have recovery requests yet.",
+            "no_requests": "You have no make-up requests yet.",
             "status_pending": "pending",
             "status_confirmed": "confirmed",
             "status_rejected": "rejected"
@@ -268,7 +281,7 @@
             "todays_sessions": "Today's Sessions",
             "active_students": "Active Students",
             "upcoming_classes": "Upcoming Classes",
-            "recovery": "Recoveries",
+            "recovery": "Make-ups",
             "total_results": "Total Results"
         },
         "training_schedule": "Training Schedule",
@@ -287,20 +300,20 @@
             "absent": "Absent",
             "absent_medical": "Medical Absent",
             "late": "Late",
-            "recovery": "Recovery",
+            "recovery": "Make-up",
             "health_alert": "Medical Alert",
-            "health_alert_banner": "Warning: {{count}} active medical alerts in selected slot.",
+            "health_alert_banner": "Warning: {{count}} active medical alert(s) in the selected slot.",
             "progress": "Progress",
             "recovery_credits": "Make-ups: {{count}}",
             "pending_confirmations": "Pending confirmations (from students)",
             "no_pending_confirmations": "No pending confirmations.",
             "no_group_sessions": "No group sessions available for attendance marking.",
             "no_individual_sessions": "No individual sessions available for attendance marking.",
-            "nothing_to_confirm": "There are no students to confirm for the selected slot.",
-            "confirmation_success": "Confirmation completed by coach: {{count}} student(s) at {{hour}}.",
+            "nothing_to_confirm": "No students to confirm for the selected slot.",
+            "confirmation_success": "Coach confirmed {{count}} student(s) for {{hour}}.",
             "mark_all_present_success": "Marked {{count}} student(s) as present.",
             "session_confirmed_by_coach": "Session confirmed by coach: {{count}} student(s) at {{hour}}.",
-            "confirm_hour": "Hour to confirm",
+            "confirm_hour": "Time slot to confirm",
             "awaiting_coach_confirmation": "Awaiting confirmation",
             "confirmed": "Confirmed",
             "confirmed_by_you": "Confirmed by you",
@@ -309,7 +322,7 @@
                 "mark_absent": "Absent",
                 "mark_absent_medical": "Medical Absent",
                 "mark_late": "Late",
-                "mark_recovery": "Recovery",
+                "mark_recovery": "Make-up",
                 "confirm_final": "Final Confirm",
                 "confirm_all_for_hour": "Confirm all at {{hour}}",
                 "mark_all_present": "All Present"
@@ -325,13 +338,13 @@
             "placeholder": "Write a message..."
         },
         "recovery": {
-            "title": "Students for Recovery",
-            "no_students": "No students for recovery.",
-            "pending_requests": "Pending recovery requests",
-            "no_pending_requests": "No new recovery requests.",
-            "confirm_request": "Confirm recovery",
-            "request_confirmed": "Recovery confirmed for {{date}} and added to calendar.",
-            "request_confirm_error": "Could not confirm recovery request.",
+            "title": "Students for Make-up",
+            "no_students": "No students scheduled for make-up.",
+            "pending_requests": "Pending make-up requests",
+            "no_pending_requests": "No new make-up requests.",
+            "confirm_request": "Confirm make-up",
+            "request_confirmed": "Make-up confirmed for {{date}} and added to the calendar.",
+            "request_confirm_error": "Could not confirm the make-up request.",
             "in_calendar": "In calendar"
         },
         "individual": {
@@ -339,11 +352,11 @@
             "no_sessions": "No individual sessions."
         },
         "count": {
-            "title": "Child Count per Hour (From Bookings)",
+            "title": "Students per Hour (From Bookings)",
             "week_schedule": "Weekly Schedule Occupancy",
             "headers": {
                 "day": "Day",
-                "interval": "Interval",
+                "interval": "Time Slot",
                 "students_max": "Students / Max",
                 "occupancy": "Occupancy"
             }
@@ -353,9 +366,9 @@
             "attendance": "Attendance",
             "results": "Results",
             "messages": "Parent Communication",
-            "recovery": "Recovery",
+            "recovery": "Make-ups",
             "individual": "Individual",
-            "count": "Child Count/Hour"
+            "count": "Students/Hour"
         }
     },
     "admin_dashboard": {
@@ -400,12 +413,17 @@
         "month": "/month",
         "students_enrolled": "{{enrolled}} / {{capacity}} Students",
         "coach": "Coach: {{name}}",
-        "select_course": "Select Course"
+        "select_course": "Select Course",
+        "plans_title": "SUBSCRIPTIONS",
+        "plans_title_highlight": "& PRICES",
+        "plans_subtitle": "Choose the right plan for you. Prices are in Moldovan lei (MDL).",
+        "added_to_cart": "ADDED ({{count}})"
     },
     "coaches_page": {
         "title": "EXPERT",
         "title_highlight": "COACHES",
-        "subtitle": "Meet the professionals dedicated to helping you achieve your swimming goals."
+        "subtitle": "Meet the professionals dedicated to helping you achieve your swimming goals.",
+        "experience": "{{count}} years of experience"
     },
     "students_page": {
         "title": "REGISTERED",
@@ -434,6 +452,31 @@
         "success_title": "Enrollment Successful!",
         "success_message": "You have successfully enrolled in {{course}}.",
         "close": "Close"
+    },
+    "search": {
+        "hint": "Type to search courses, coaches or students...",
+        "no_results": "No results found for \"{{query}}\"",
+        "section_courses": "Courses",
+        "section_coaches": "Coaches",
+        "section_students": "Students",
+        "close_hint": "Press ESC to close",
+        "results_count": "{{count}} results found"
+    },
+    "faq": {
+        "title": "Frequently Asked",
+        "title_highlight": "Questions",
+        "subtitle": "Find answers to the most common questions about our swimming courses.",
+        "contact_text": "Have another question? Contact our team by",
+        "contact_link": "sending an email",
+        "contact_suffix": "and we'll get back to you as soon as possible.",
+        "q1": { "q": "Where do training sessions take place?", "a": "Our training sessions take place in the Aquacenter area within Chișinău Arena." },
+        "q2": { "q": "How long does a training session last?", "a": "A group or individual training session lasts an average of 45 minutes." },
+        "q3": { "q": "At what age can a child start swimming?", "a": "Children can start learning to swim from the age of 4, in a safe environment adapted to their needs." },
+        "q4": { "q": "How long does it take a child to learn to swim?", "a": "Every child progresses at their own pace. Generally, the basics of swimming are learned after 2–3 months of regular training." },
+        "q5": { "q": "How many children are in a group?", "a": "Groups consist of 12–16 children, so each one receives the necessary attention from the coach." },
+        "q6": { "q": "How can I enroll my child?", "a": "Enrollment is done by phone or online, by filling out the form on our website." },
+        "q7": { "q": "Is special equipment required?", "a": "Yes, each swimmer needs a swimsuit, cap, goggles, towel and flip-flops. The rest of the equipment is provided by the club." },
+        "q8": { "q": "Can missed sessions be made up?", "a": "Group sessions can be made up only for medical reasons and with prior scheduling. Make-ups are valid only during the active subscription period.\n\nSessions cancelled the day before can be rescheduled.\n\nSessions cancelled on the day of the training cannot be made up." }
     },
     "map": {
         "school_name": "SwimSchool - Education Center",
