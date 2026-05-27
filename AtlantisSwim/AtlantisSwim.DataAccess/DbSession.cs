@@ -1,6 +1,14 @@
+using AtlantisSwim.Domain.Entities.Announcement;
+using AtlantisSwim.Domain.Entities.Attendance;
+using AtlantisSwim.Domain.Entities.Booking;
 using AtlantisSwim.Domain.Entities.Chat;
 using AtlantisSwim.Domain.Entities.Course;
+using AtlantisSwim.Domain.Entities.Payment;
+using AtlantisSwim.Domain.Entities.Recovery;
+using AtlantisSwim.Domain.Entities.Results;
+using AtlantisSwim.Domain.Entities.Schedule;
 using AtlantisSwim.Domain.Entities.Student;
+using AtlantisSwim.Domain.Entities.Subscription;
 using AtlantisSwim.Domain.Entities.SwimmingService;
 using AtlantisSwim.Domain.Entities.User;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +35,16 @@ namespace AtlantisSwim.DataAccess
         public DbSet<SwimmingServiceData> SwimmingServices { get; set; }
         public DbSet<StudentData> Students { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
+
+        // ── New modules ─────────────────────────────────────────────────────────
+        public DbSet<AttendanceRecord> AttendanceRecords { get; set; }
+        public DbSet<SwimmingResult> SwimmingResults { get; set; }
+        public DbSet<BookingData> Bookings { get; set; }
+        public DbSet<SubscriptionData> Subscriptions { get; set; }
+        public DbSet<PaymentData> Payments { get; set; }
+        public DbSet<CoachScheduleSlot> ScheduleSlots { get; set; }
+        public DbSet<AnnouncementData> Announcements { get; set; }
+        public DbSet<RecoveryCredit> RecoveryCredits { get; set; }
 
         // ── Configuration ────────────────────────────────────────────────────────
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

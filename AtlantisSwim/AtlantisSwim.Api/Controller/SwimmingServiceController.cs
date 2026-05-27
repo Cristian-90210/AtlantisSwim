@@ -1,5 +1,6 @@
 using AtlantisSwim.BusinessLayer.Interfaces;
 using AtlantisSwim.Domain.Models.SwimmingService;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AtlantisSwim.Api.Controller
@@ -16,6 +17,7 @@ namespace AtlantisSwim.Api.Controller
         }
 
         [HttpGet("getAll")]
+        [AllowAnonymous]
         public IActionResult GetAll()
         {
             var services = _swimmingService.GetAllSwimmingServiceAction();
@@ -31,6 +33,7 @@ namespace AtlantisSwim.Api.Controller
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public IActionResult Create([FromBody] SwimmingServiceDto data)
         {
             var response = _swimmingService.CreateSwimmingServiceAction(data);
@@ -42,6 +45,7 @@ namespace AtlantisSwim.Api.Controller
         }
 
         [HttpPut]
+        [Authorize(Roles = "Admin")]
         public IActionResult Update([FromBody] SwimmingServiceDto data)
         {
             var response = _swimmingService.UpdateSwimmingServiceAction(data);
@@ -53,6 +57,7 @@ namespace AtlantisSwim.Api.Controller
         }
 
         [HttpDelete]
+        [Authorize(Roles = "Admin")]
         public IActionResult Delete(int id)
         {
             var response = _swimmingService.DeleteSwimmingServiceAction(id);

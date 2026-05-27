@@ -321,6 +321,7 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick }) =
                     { label: t('header.courses'), to: '/courses' },
                     { label: t('header.attendance'), to: '/prezenta' },
                     { label: t('header.our_team'), to: '/coaches' },
+                    { label: t('header.news', { defaultValue: 'NOUTĂȚI' }), to: '/news' },
                 ]
                 : []),
             ...(user.role === UserRole.Coach
@@ -328,6 +329,7 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick }) =
                     { label: t('header.dashboard'), to: '/coach' },
                     { label: t('header.courses'), to: '/courses' },
                     { label: t('header.students'), to: '/students' },
+                    { label: t('header.news', { defaultValue: 'NOUTĂȚI' }), to: '/news' },
                 ]
                 : []),
             ...(user.role === UserRole.Admin
@@ -336,6 +338,7 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick }) =
                     { label: t('header.courses'), to: '/courses' },
                     { label: t('header.coaches'), to: '/coaches' },
                     { label: t('header.students'), to: '/students' },
+                    { label: t('header.news', { defaultValue: 'NOUTĂȚI' }), to: '/news' },
                 ]
                 : []),
         ]
@@ -344,6 +347,7 @@ export const AtlantisNavbar: React.FC<AtlantisNavbarProps> = ({ onMenuClick }) =
             { label: t('header.courses'), to: '/courses' },
             { label: t('header.our_team'), to: '/coaches' },
             { label: t('header.faq'), to: '/faq' },
+            { label: t('header.news', { defaultValue: 'NOUTĂȚI' }), to: '/news' },
         ];
 
     const navigateAndScroll = (to: string) => {

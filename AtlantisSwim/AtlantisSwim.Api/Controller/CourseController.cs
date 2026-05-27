@@ -1,6 +1,7 @@
 using AtlantisSwim.DataAccess;
 using AtlantisSwim.Domain.Entities.Course;
 using AtlantisSwim.Domain.Models.Course;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -17,8 +18,9 @@ namespace AtlantisSwim.Api.Controller
             _db = db;
         }
 
-        // GET /api/course/getAll
+        // GET /api/course/getAll — public (students browse courses without login)
         [HttpGet("getAll")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetAllCourses()
         {
             var courses = await _db.Courses
@@ -66,16 +68,18 @@ namespace AtlantisSwim.Api.Controller
             });
         }
 
-        // GET /api/course/levels
+        // GET /api/course/levels — public
         [HttpGet("levels")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetLevels()
         {
             var levels = await _db.CourseLevels.ToListAsync();
             return Ok(levels);
         }
 
-        // POST /api/course
+        // POST /api/course — Admin only
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateCourseDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -104,8 +108,9 @@ namespace AtlantisSwim.Api.Controller
             return CreatedAtAction(nameof(GetById), new { id = course.Id }, course.Id);
         }
 
-        // PUT /api/course/{id}
+        // PUT /api/course/{id} — Admin only
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateCourseDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -132,8 +137,9 @@ namespace AtlantisSwim.Api.Controller
             return Ok(new { id = course.Id });
         }
 
-        // DELETE /api/course/{id}
+        // DELETE /api/course/{id} — Admin only
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var course = await _db.Courses
