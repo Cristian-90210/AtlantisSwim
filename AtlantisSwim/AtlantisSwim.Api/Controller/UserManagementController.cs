@@ -1,6 +1,7 @@
 using AtlantisSwim.DataAccess;
 using AtlantisSwim.Domain.Entities.User;
 using AtlantisSwim.Domain.Models.User;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,6 +9,7 @@ namespace AtlantisSwim.Api.Controller
 {
     [Route("api/users")]
     [ApiController]
+    [Authorize]
     public class UserManagementController : ControllerBase
     {
         private readonly DbSession _db;
@@ -19,6 +21,7 @@ namespace AtlantisSwim.Api.Controller
 
         // GET /api/users
         [HttpGet]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetAll()
         {
             var users = await _db.Users
@@ -29,6 +32,7 @@ namespace AtlantisSwim.Api.Controller
 
         // GET /api/users/{id}
         [HttpGet("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> GetById(int id)
         {
             var user = await _db.Users.FindAsync(id);
@@ -36,8 +40,9 @@ namespace AtlantisSwim.Api.Controller
             return Ok(ToDto(user));
         }
 
-        // POST /api/users
+        // POST /api/users  — Admin only
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Create([FromBody] CreateUserDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -50,7 +55,7 @@ namespace AtlantisSwim.Api.Controller
                 FirstName    = dto.FirstName,
                 LastName     = dto.LastName,
                 Email        = dto.Email,
-                Password     = dto.Password,
+                Password     = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 UserName     = dto.Email.Split('@')[0],
                 Phone        = dto.Phone,
                 Role         = (UserRole)dto.RoleId,
@@ -64,8 +69,9 @@ namespace AtlantisSwim.Api.Controller
             return CreatedAtAction(nameof(GetById), new { id = user.Id }, ToDto(user));
         }
 
-        // PUT /api/users/{id}
+        // PUT /api/users/{id}  — Admin only
         [HttpPut("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateUserDto dto)
         {
             var user = await _db.Users.FindAsync(id);
@@ -75,7 +81,8 @@ namespace AtlantisSwim.Api.Controller
             if (dto.LastName  != null) user.LastName  = dto.LastName;
             if (dto.Email     != null) user.Email     = dto.Email;
             if (dto.Phone     != null) user.Phone     = dto.Phone;
-            if (!string.IsNullOrWhiteSpace(dto.Password)) user.Password = dto.Password;
+            if (!string.IsNullOrWhiteSpace(dto.Password))
+                user.Password = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             if (dto.RoleId    != null) user.Role      = (UserRole)dto.RoleId.Value;
             if (dto.IsActive  != null) user.IsActive  = dto.IsActive.Value;
 
@@ -83,8 +90,9 @@ namespace AtlantisSwim.Api.Controller
             return Ok(ToDto(user));
         }
 
-        // DELETE /api/users/{id}
+        // DELETE /api/users/{id}  — Admin only
         [HttpDelete("{id:int}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var user = await _db.Users.FindAsync(id);

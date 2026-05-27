@@ -1,11 +1,13 @@
 using AtlantisSwim.BusinessLayer.Interfaces;
 using AtlantisSwim.Domain.Models.Student;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AtlantisSwim.Api.Controller
 {
     [Route("api/students")]
     [ApiController]
+    [Authorize]
     public class StudentController : ControllerBase
     {
         private readonly IStudentService _studentService;

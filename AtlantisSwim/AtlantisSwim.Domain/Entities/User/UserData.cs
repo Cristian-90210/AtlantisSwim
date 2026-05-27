@@ -25,7 +25,7 @@ namespace AtlantisSwim.Domain.Entities.User
         public string Email { get; set; }
 
         [Required]
-        [StringLength(48, MinimumLength = 8)]
+        [Column(TypeName = "text")]
         public string Password { get; set; }
 
         [StringLength(12)]

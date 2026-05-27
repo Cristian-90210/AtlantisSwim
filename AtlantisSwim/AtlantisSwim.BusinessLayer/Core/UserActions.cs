@@ -12,9 +12,17 @@ namespace AtlantisSwim.BusinessLayer.Core
         internal UserData? UserLoginDataValidationExecution(UserLoginDto udata)
         {
             using var db = new UserContext();
-            return db.Users.FirstOrDefault(x =>
-                (x.UserName == udata.CredentialType || x.Email == udata.CredentialType) &&
-                x.Password == udata.Password);
+            var user = db.Users.FirstOrDefault(x =>
+                x.UserName == udata.CredentialType || x.Email == udata.CredentialType);
+
+            if (user == null || !user.IsActive) return null;
+
+            // Support both BCrypt hashes and plain-text passwords (during migration window)
+            bool passwordValid = user.Password.StartsWith("$2a$") || user.Password.StartsWith("$2b$")
+                ? BCrypt.Net.BCrypt.Verify(udata.Password, user.Password)
+                : user.Password == udata.Password;
+
+            return passwordValid ? user : null;
         }
         internal string UserTokenGeneration(UserData user)
         {
@@ -46,7 +54,7 @@ namespace AtlantisSwim.BusinessLayer.Core
                 FirstName = uReg.FirstName,
                 LastName = uReg.LastName,
                 Email = uReg.Email,
-                Password = uReg.Password,
+                Password = BCrypt.Net.BCrypt.HashPassword(uReg.Password),
                 UserName = uReg.Email.Split('@')[0], // Use email handle as username placeholder
                 Phone = "",
                 Role = UserRole.Student,

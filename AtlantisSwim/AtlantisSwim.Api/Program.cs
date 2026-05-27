@@ -1,5 +1,6 @@
 using System.Text;
 using AtlantisSwim.Api.Hubs;
+using AtlantisSwim.Api.Services;
 using AtlantisSwim.BusinessLayer.Interfaces;
 using AtlantisSwim.BusinessLayer.Structure;
 using AtlantisSwim.DataAccess;
@@ -12,19 +13,28 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Connection string ─────────────────────────────────────────────────────────
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found in configuration.");
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-// Make connection string available to legacy context classes (UserContext, CourseContext, etc.)
 #pragma warning disable CS0618
 DbSession.ConnectionString = connectionString;
 #pragma warning restore CS0618
 
-// ── EF Core — register DbSession via dependency injection ─────────────────────
+// ── EF Core ───────────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<DbSession>(options =>
     options.UseNpgsql(connectionString));
 
 // ── Business layer services ───────────────────────────────────────────────────
-builder.Services.AddScoped<IStudentService, StudentService>();
+builder.Services.AddScoped<IStudentService,       StudentService>();
+builder.Services.AddScoped<IAttendanceService,    AttendanceService>();
+builder.Services.AddScoped<ISwimmingResultService,SwimmingResultService>();
+builder.Services.AddScoped<IBookingService,       BookingService>();
+builder.Services.AddScoped<ISubscriptionService,  SubscriptionService>();
+builder.Services.AddScoped<IPaymentService,       PaymentService>();
+builder.Services.AddScoped<IScheduleService,      ScheduleService>();
+builder.Services.AddScoped<IAnnouncementService,  AnnouncementService>();
+
+// ── Startup services ──────────────────────────────────────────────────────────
+builder.Services.AddHostedService<PasswordMigrationService>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────────
 var jwtKey      = builder.Configuration["Jwt:Key"]      ?? "AtlantisSwim-SuperSecret-JWT-Key-2024!@#$%^&*()";
@@ -34,6 +44,9 @@ var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AtlantisSwim.Fronten
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.UseSecurityTokenValidators = true;
+        options.MapInboundClaims           = true;
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer           = true,
@@ -42,9 +55,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer              = jwtIssuer,
             ValidAudience            = jwtAudience,
-            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew                = TimeSpan.Zero
         };
-        // SignalR sends the token via query string because WebSocket doesn't support headers
+
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -56,6 +70,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     context.Token = accessToken;
                 }
                 return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices
+                    .GetRequiredService<ILogger<Program>>();
+                logger.LogError("JWT auth failed: {Type} — {Message}",
+                    context.Exception.GetType().Name, context.Exception.Message);
+                return Task.CompletedTask;
             }
         };
     });
@@ -63,14 +85,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+    ?? new[] { "http://localhost:5173" };
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials(); // required for SignalR WebSocket
+              .AllowCredentials();
     });
 });
 
@@ -102,14 +127,36 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
+// ── Auto-apply migrations on startup ─────────────────────────────────────────
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<DbSession>();
+    db.Database.Migrate();
+}
+
+// ── Global exception handler ──────────────────────────────────────────────────
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode  = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error   = "An unexpected error occurred.",
+            traceId = context.TraceIdentifier
+        });
+    });
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowFrontend");
 app.UseHttpsRedirection();
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
