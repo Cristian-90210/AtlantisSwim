@@ -46,6 +46,7 @@ import { InternalServerError } from './pages/InternalServerError';
 import { ServerStatus } from './pages/ServerStatus';
 import { Attendance } from './pages/Attendance';
 
+
 // Protected Route Wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode; allowedRoles?: UserRole[] }> = ({ children, allowedRoles }) => {
   const { isAuthenticated, user } = useAuth();

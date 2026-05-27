@@ -35,6 +35,8 @@ export const CoachDashboard: React.FC = () => {
 
     // Results form state
     const [resultForm, setResultForm] = useState({
+        date: '2026-02-19',
+        hour: '17:00',
         studentId: 's1',
         style: 'freestyle' as SwimStyle,
         distance: '25m' as SwimDistance,
@@ -73,6 +75,11 @@ export const CoachDashboard: React.FC = () => {
 
     const allowedConfirmationHours = getAllowedHoursForDate(confirmationDate);
 
+    const getResultHoursForDate = (date: string) => {
+        const day = new Date(`${date}T00:00:00`).getDay();
+        return day === 0 || day === 6 ? ['10:00', '11:00', '12:00'] : ['17:00', '18:00', '19:00'];
+    };
+
     useEffect(() => {
         if (!allowedConfirmationHours.includes(confirmationHour)) {
             setConfirmationHour(allowedConfirmationHours[0]);
@@ -89,6 +96,50 @@ export const CoachDashboard: React.FC = () => {
             })
             .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
     }, [coachId]);
+
+    const coachedStudents = useMemo(() => {
+        return Array.from(new Set(schedule.map(session => session.studentId)))
+            .map(studentId => mockStudents.find(student => student.id === studentId))
+            .filter((student): student is (typeof mockStudents)[number] => Boolean(student));
+    }, [schedule]);
+
+    const resultHourOptions = useMemo(() => getResultHoursForDate(resultForm.date), [resultForm.date]);
+
+    const resultStudents = useMemo(() => {
+        const scheduledStudents = schedule
+            .filter(session => session.date === resultForm.date && session.time === resultForm.hour)
+            .map(session => mockStudents.find(student => student.id === session.studentId))
+            .filter((student): student is (typeof mockStudents)[number] => Boolean(student));
+
+        if (scheduledStudents.length > 0) {
+            return scheduledStudents.filter((student, index, list) => list.findIndex(item => item.id === student.id) === index);
+        }
+
+        const slotIndex = resultHourOptions.indexOf(resultForm.hour);
+        if (slotIndex === -1) return [];
+
+        return coachedStudents.filter((_, index) => index % resultHourOptions.length === slotIndex);
+    }, [coachedStudents, resultForm.date, resultForm.hour, resultHourOptions, schedule]);
+
+    useEffect(() => {
+        if (!resultHourOptions.includes(resultForm.hour)) {
+            setResultForm(prev => ({ ...prev, hour: resultHourOptions[0] }));
+        }
+    }, [resultForm.hour, resultHourOptions]);
+
+    useEffect(() => {
+        if (resultStudents.length === 0) {
+            if (resultForm.studentId !== '') {
+                setResultForm(prev => ({ ...prev, studentId: '' }));
+            }
+            return;
+        }
+
+        const hasSelectedStudent = resultStudents.some(student => student.id === resultForm.studentId);
+        if (!hasSelectedStudent) {
+            setResultForm(prev => ({ ...prev, studentId: resultStudents[0].id }));
+        }
+    }, [resultForm.studentId, resultStudents]);
 
     const today = new Date().toISOString().split('T')[0];
     const coachedStudentIds = useMemo(() => new Set(schedule.map(s => s.studentId)), [schedule]);
@@ -210,15 +261,10 @@ export const CoachDashboard: React.FC = () => {
     };
 
     const handleMarkAllVisiblePresent = async () => {
-        const targetSessions = attendanceMode === 'group'
-            ? attendanceSlots
-                .filter(slot => slot.type === 'group')
-                .filter(slot => slot.date === confirmationDate && slot.time === confirmationHour)
-                .flatMap(slot => slot.sessions)
-            : attendanceSlots
-                .filter(slot => slot.type === 'individual')
-                .filter(slot => slot.date === confirmationDate && slot.time === confirmationHour)
-                .flatMap(slot => slot.sessions);
+        const targetSessions = attendanceSlots
+            .filter(slot => slot.type === 'group')
+            .filter(slot => slot.date === confirmationDate && slot.time === confirmationHour)
+            .flatMap(slot => slot.sessions);
 
         if (targetSessions.length === 0) {
             setSessionConfirmationFeedback({ type: 'error', message: t('coach_dashboard.attendance.nothing_to_confirm') });
@@ -249,14 +295,14 @@ export const CoachDashboard: React.FC = () => {
     };
 
     const handleAddResult = async () => {
-        if (!resultForm.time) return;
+        if (!resultForm.time || !resultForm.studentId) return;
         const newResult = await resultsService.create({
             studentId: resultForm.studentId,
             coachId,
             style: resultForm.style,
             distance: resultForm.distance,
             time: resultForm.time,
-            date: new Date().toISOString().split('T')[0],
+            date: resultForm.date,
         });
         setAllResults(prev => [...prev, newResult]);
         setResultForm(prev => ({ ...prev, time: '' }));
@@ -650,18 +696,22 @@ export const CoachDashboard: React.FC = () => {
                                         <option key={hour} value={hour}>{hour}</option>
                                     ))}
                                 </select>
-                                <button
-                                    onClick={handleConfirmAllForHour}
-                                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-host-cyan text-white hover:bg-host-blue transition-colors"
-                                >
-                                    {t('coach_dashboard.attendance.action.confirm_all_for_hour', { hour: `${confirmationDate} ${confirmationHour}` })}
-                                </button>
-                                <button
-                                    onClick={handleMarkAllVisiblePresent}
-                                    className="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
-                                >
-                                    {t('coach_dashboard.attendance.action.mark_all_present')}
-                                </button>
+                                {attendanceMode === 'group' && (
+                                    <div className="flex flex-wrap items-center gap-4 md:gap-5">
+                                        <button
+                                            onClick={handleConfirmAllForHour}
+                                            className="px-3 py-1.5 rounded-full text-xs font-bold bg-host-cyan text-white hover:bg-host-blue transition-colors"
+                                        >
+                                            {t('coach_dashboard.attendance.action.confirm_all_for_hour', { hour: `${confirmationDate} ${confirmationHour}` })}
+                                        </button>
+                                        <button
+                                            onClick={handleMarkAllVisiblePresent}
+                                            className="px-3 py-1.5 rounded-full text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+                                        >
+                                            {t('coach_dashboard.attendance.action.mark_all_present')}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                             {selectedSlotMedicalAlerts > 0 && (
                                 <div className="mb-4 p-3 rounded-lg border border-red-200 bg-red-50 text-red-700 text-sm font-semibold inline-flex items-center gap-2">
@@ -763,7 +813,7 @@ export const CoachDashboard: React.FC = () => {
                                     <div className="text-sm text-gray-500">{t('coach_dashboard.attendance.no_pending_confirmations')}</div>
                                 )}
                             </div>
-                            {attendanceConfirmationFeedback && (
+                            {attendanceMode === 'group' && attendanceConfirmationFeedback && (
                                 <div className={clsx(
                                     "mt-4 text-sm font-semibold",
                                     attendanceConfirmationFeedback.type === 'success' ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"
@@ -933,15 +983,35 @@ export const CoachDashboard: React.FC = () => {
                                 <Trophy className="mr-2 text-host-cyan" size={20} />
                                 {t('coach_dashboard.results.add_title')}
                             </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                                <input
+                                    type="date"
+                                    value={resultForm.date}
+                                    onChange={e => setResultForm(prev => ({ ...prev, date: e.target.value }))}
+                                    className="rounded border-gray-300 p-2 text-sm focus:border-host-cyan outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                                />
+                                <select
+                                    value={resultForm.hour}
+                                    onChange={e => setResultForm(prev => ({ ...prev, hour: e.target.value }))}
+                                    className="rounded border-gray-300 p-2 text-sm focus:border-host-cyan outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                                >
+                                    {resultHourOptions.map(hour => (
+                                        <option key={hour} value={hour}>{hour}</option>
+                                    ))}
+                                </select>
                                 <select
                                     value={resultForm.studentId}
                                     onChange={e => setResultForm(prev => ({ ...prev, studentId: e.target.value }))}
                                     className="rounded border-gray-300 p-2 text-sm focus:border-host-cyan outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                                    disabled={resultStudents.length === 0}
                                 >
-                                    {mockStudents.map(s => (
-                                        <option key={s.id} value={s.id}>{s.name}</option>
-                                    ))}
+                                    {resultStudents.length > 0 ? (
+                                        resultStudents.map(student => (
+                                            <option key={student.id} value={student.id}>{student.name}</option>
+                                        ))
+                                    ) : (
+                                        <option value="">Nu exista elevi pentru aceasta ora</option>
+                                    )}
                                 </select>
                                 <select
                                     value={resultForm.style}
