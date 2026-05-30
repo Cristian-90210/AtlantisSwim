@@ -98,7 +98,7 @@ namespace AtlantisSwim.Api.Controller
             var user = await _db.Users.FindAsync(id);
             if (user == null) return NotFound();
 
-            _db.Users.Remove(user);
+            user.IsActive = false;   // soft delete — preserves FK integrity
             await _db.SaveChangesAsync();
             return NoContent();
         }

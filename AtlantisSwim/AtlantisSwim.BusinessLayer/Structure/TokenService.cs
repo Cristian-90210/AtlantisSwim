@@ -22,9 +22,13 @@ namespace AtlantisSwim.BusinessLayer.Structure
                 .AddJsonFile("appsettings.json", optional: false)
                 .Build();
 
-            _key           = config["Jwt:Key"]           ?? "AtlantisSwim-SuperSecret-JWT-Key-2024!@#$%^&*()";
-            _issuer        = config["Jwt:Issuer"]        ?? "AtlantisSwim.Api";
-            _audience      = config["Jwt:Audience"]      ?? "AtlantisSwim.Frontend";
+            _key = config["Jwt:Key"]
+                ?? throw new InvalidOperationException(
+                    "Jwt:Key is missing from configuration. " +
+                    "Set it in appsettings.json or via the Jwt__Key environment variable.");
+
+            _issuer         = config["Jwt:Issuer"]   ?? "AtlantisSwim.Api";
+            _audience       = config["Jwt:Audience"] ?? "AtlantisSwim.Frontend";
             _expiresInHours = int.TryParse(config["Jwt:ExpiresInHours"], out var h) ? h : 24;
         }
 

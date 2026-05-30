@@ -1,18 +1,15 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Search, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { mockCourses, mockCoaches, mockStudents } from '../data/mockData';
+import { courseService, coachService, studentService } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import type { Course, Coach, Student } from '../types';
 
 interface GlobalSearchProps {
     isOpen: boolean;
     onClose: () => void;
 }
 
-/**
- * Custom hook: debounces a string value by `delay` ms.
- * No external dependencies — just useEffect + setTimeout.
- */
 function useDebouncedValue(value: string, delay: number): string {
     const [debounced, setDebounced] = useState(value);
 
@@ -26,10 +23,25 @@ function useDebouncedValue(value: string, delay: number): string {
 
 export const GlobalSearch: React.FC<GlobalSearchProps> = React.memo(({ isOpen, onClose }) => {
     const [query, setQuery] = useState('');
+    const [allCourses, setAllCourses] = useState<Course[]>([]);
+    const [allCoaches, setAllCoaches] = useState<Coach[]>([]);
+    const [allStudents, setAllStudents] = useState<Student[]>([]);
     const navigate = useNavigate();
     const { t } = useTranslation();
 
-    /* ─── Debounce: filtering runs 300ms after the user stops typing ─── */
+    useEffect(() => {
+        if (!isOpen) return;
+        Promise.all([
+            courseService.getAll(),
+            coachService.getAll(),
+            studentService.getAll(),
+        ]).then(([courses, coaches, students]) => {
+            setAllCourses(courses);
+            setAllCoaches(coaches);
+            setAllStudents(students);
+        });
+    }, [isOpen]);
+
     const debouncedQuery = useDebouncedValue(query, 300);
 
     const results = useMemo(() => {
@@ -37,11 +49,11 @@ export const GlobalSearch: React.FC<GlobalSearchProps> = React.memo(({ isOpen, o
 
         const lowerQuery = debouncedQuery.toLowerCase();
         return {
-            courses: mockCourses.filter(c => c.title.toLowerCase().includes(lowerQuery)),
-            coaches: mockCoaches.filter(c => c.name.toLowerCase().includes(lowerQuery)),
-            students: mockStudents.filter(s => s.name.toLowerCase().includes(lowerQuery))
+            courses: allCourses.filter(c => c.title.toLowerCase().includes(lowerQuery)),
+            coaches: allCoaches.filter(c => c.name.toLowerCase().includes(lowerQuery)),
+            students: allStudents.filter(s => s.name.toLowerCase().includes(lowerQuery))
         };
-    }, [debouncedQuery]);
+    }, [debouncedQuery, allCourses, allCoaches, allStudents]);
 
     const hasResults = results.courses.length > 0 || results.coaches.length > 0 || results.students.length > 0;
 

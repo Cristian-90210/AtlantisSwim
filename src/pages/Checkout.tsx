@@ -1,6 +1,8 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+import { paymentService } from '../services/api';
 import {
     CreditCard, Lock, CheckCircle, ArrowLeft,
     User, Mail, Phone, Calendar, ShieldCheck
@@ -53,6 +55,7 @@ function inputCls(hasError: boolean) {
 
 export const Checkout: React.FC = () => {
     const navigate = useNavigate();
+    const { user } = useAuth();
     const { items, totalPrice, clearCart } = useCart();
 
     /* ─── UNCONTROLLED refs for personal data (no live preview needed) ─── */
@@ -114,9 +117,32 @@ export const Checkout: React.FC = () => {
         const errs = validate();
         if (Object.keys(errs).length) { setErrors(errs); return; }
         setErrors({});
-        setSubmittedEmail(emailRef.current?.value || '');
+        const email = emailRef.current?.value || '';
+        setSubmittedEmail(email);
         setIsLoading(true);
-        await new Promise(r => setTimeout(r, 2200)); // simulare procesare
+        try {
+            const firstItem = items[0];
+            const result = await paymentService.process({
+                studentUserId: parseInt(user?.id ?? '0', 10),
+                serviceId:     parseInt(firstItem?.id ?? '0', 10),
+                planName:      firstItem?.name ?? '',
+                amount:        firstItem ? (firstItem.discountPrice ?? firstItem.price) : totalPrice,
+                sessionsTotal: firstItem?.sessionsTotal ?? 1,
+                method:        'card',
+                cardHolderName: cardForm.cardHolder,
+                contactEmail:   email,
+                contactPhone:   phoneRef.current?.value ?? '',
+            });
+            if (!result.isSuccess) {
+                setErrors({ form: result.message ?? 'Plata a eșuat. Verificați datele cardului.' });
+                setIsLoading(false);
+                return;
+            }
+        } catch {
+            setErrors({ form: 'Eroare de conexiune. Verificați datele și încercați din nou.' });
+            setIsLoading(false);
+            return;
+        }
         setIsLoading(false);
         setIsSuccess(true);
         clearCart();
@@ -370,6 +396,13 @@ export const Checkout: React.FC = () => {
                                 </Field>
                             </div>
                         </div>
+
+                        {/* Form-level error (payment gateway rejection) */}
+                        {errors.form && (
+                            <div className="p-3 rounded-xl bg-red-500/20 border border-red-400/40 text-red-300 text-sm font-medium text-center">
+                                {errors.form}
+                            </div>
+                        )}
 
                         {/* Submit */}
                         <button

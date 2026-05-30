@@ -7,20 +7,26 @@ import { UserRole, getRoleKey } from '../types';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
 
-const DEMO_ACCOUNTS: { role: UserRole; name: string; email: string; password: string }[] = [
-    // Elevi
-    { role: UserRole.Student, name: 'Andrei Popov',    email: 'andrei.popov@student.md',  password: 'elev1234'      },
-    { role: UserRole.Student, name: 'Elena Dumitru',   email: 'elena.dumitru@student.md', password: 'elev1234'      },
-    { role: UserRole.Student, name: 'Mihai Voicu',     email: 'mihai.voicu@student.md',   password: 'elev1234'      },
-    // Antrenori
-    { role: UserRole.Coach,   name: 'Cătălina Moraru', email: 'catalina@atlantisswim.md', password: 'antrenor1234'  },
-    { role: UserRole.Coach,   name: 'Cătălin Ciobanu', email: 'catalin@atlantisswim.md',  password: 'antrenor1234'  },
-    { role: UserRole.Coach,   name: 'Alexandru Rusu',  email: 'alexandru@atlantisswim.md',password: 'antrenor1234'  },
-    // Administratori
-    { role: UserRole.Admin,   name: 'Super Admin',     email: 'admin@school.com',         password: 'admin1234'     },
-    { role: UserRole.Admin,   name: 'Director Ionescu',email: 'director@school.com',      password: 'admin1234'     },
-    { role: UserRole.Admin,   name: 'Manager Stancu',  email: 'manager@school.com',       password: 'admin1234'     },
-];
+// Credentials are only included in development builds.
+// Vite replaces import.meta.env.DEV with `false` at production build time,
+// and Rollup's dead-code elimination removes this entire branch from the bundle.
+const DEMO_ACCOUNTS: { role: UserRole; name: string; email: string; password: string }[] =
+    import.meta.env.DEV
+        ? [
+              // Elevi
+              { role: UserRole.Student, name: 'Andrei Popov',    email: 'andrei.popov@student.md',  password: 'elev1234'      },
+              { role: UserRole.Student, name: 'Elena Dumitru',   email: 'elena.dumitru@student.md', password: 'elev1234'      },
+              { role: UserRole.Student, name: 'Mihai Voicu',     email: 'mihai.voicu@student.md',   password: 'elev1234'      },
+              // Antrenori
+              { role: UserRole.Coach,   name: 'Cătălina Moraru', email: 'catalina@atlantisswim.md', password: 'antrenor1234'  },
+              { role: UserRole.Coach,   name: 'Cătălin Ciobanu', email: 'catalin@atlantisswim.md',  password: 'antrenor1234'  },
+              { role: UserRole.Coach,   name: 'Alexandru Rusu',  email: 'alexandru@atlantisswim.md',password: 'antrenor1234'  },
+              // Administratori
+              { role: UserRole.Admin,   name: 'Super Admin',     email: 'admin@school.com',         password: 'admin1234'     },
+              { role: UserRole.Admin,   name: 'Director Ionescu',email: 'director@school.com',      password: 'admin1234'     },
+              { role: UserRole.Admin,   name: 'Manager Stancu',  email: 'manager@school.com',       password: 'admin1234'     },
+          ]
+        : [];
 
 const ROLE_COLORS: Record<UserRole, string> = {
     [UserRole.Student]: 'bg-sky-500/20 text-sky-300 border-sky-400/30',
@@ -177,8 +183,8 @@ export const Login: React.FC = () => {
                         </button>
                     </form>
 
-                    {/* DEMO ACCOUNTS PANEL */}
-                    <div className="mt-6">
+                    {/* DEMO ACCOUNTS PANEL — development only (DEMO_ACCOUNTS is empty in production) */}
+                    {DEMO_ACCOUNTS.length > 0 && <div className="mt-6">
                         <button
                             type="button"
                             onClick={() => setShowDemo((v) => !v)}
@@ -214,7 +220,7 @@ export const Login: React.FC = () => {
                                 ))}
                             </div>
                         )}
-                    </div>
+                    </div>}
 
                     <div className="mt-4 text-center">
                         <div className="w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>

@@ -17,12 +17,12 @@ namespace AtlantisSwim.BusinessLayer.Core
 
             if (user == null || !user.IsActive) return null;
 
-            // Support both BCrypt hashes and plain-text passwords (during migration window)
-            bool passwordValid = user.Password.StartsWith("$2a$") || user.Password.StartsWith("$2b$")
-                ? BCrypt.Net.BCrypt.Verify(udata.Password, user.Password)
-                : user.Password == udata.Password;
+            // Only BCrypt hashes are accepted — PasswordMigrationService hashes
+            // all plain-text passwords at startup before requests are served.
+            if (!user.Password.StartsWith("$2a$") && !user.Password.StartsWith("$2b$"))
+                return null;
 
-            return passwordValid ? user : null;
+            return BCrypt.Net.BCrypt.Verify(udata.Password, user.Password) ? user : null;
         }
         internal string UserTokenGeneration(UserData user)
         {

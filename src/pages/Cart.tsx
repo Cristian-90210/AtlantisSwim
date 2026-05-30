@@ -1,30 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { subscriptionPlans } from '../data/mockData';
 import {
-    ShoppingCart, Trash2, Plus, Minus, CreditCard, Tag,
-    Calendar, CheckCircle, Lock, Waves, Users, Clock
+    ShoppingCart, Trash2, Plus, Minus, CreditCard,
+    Calendar, CheckCircle, Lock, Waves, Users
 } from 'lucide-react';
 import { clsx } from 'clsx';
-
-// Helper: find description from subscriptionPlans by matching plan id
-const getPlanDetails = (itemId: string) =>
-    subscriptionPlans.find((p) => p.id === itemId);
-
-const CATEGORY_LABELS: Record<string, string> = {
-    standard: 'Standard',
-    pro: 'Pro',
-    individual: 'Individual',
-    transport: 'Cu Transport',
-};
-
-const CATEGORY_COLORS: Record<string, string> = {
-    standard: 'bg-sky-500/15 text-sky-400 border-sky-400/30',
-    pro: 'bg-violet-500/15 text-violet-400 border-violet-400/30',
-    individual: 'bg-amber-500/15 text-amber-400 border-amber-400/30',
-    transport: 'bg-emerald-500/15 text-emerald-400 border-emerald-400/30',
-};
 
 const HOW_IT_WORKS = [
     { step: '1', title: 'Alege un abonament', icon: ShoppingCart },
@@ -108,7 +89,6 @@ export const CartPage: React.FC = () => {
                         {/* Items list */}
                         <div className="lg:col-span-7 space-y-5">
                             {items.map((item) => {
-                                const plan = getPlanDetails(item.id);
                                 const unitPrice = item.discountPrice ?? item.price;
                                 const originalPrice = item.price;
                                 const hasDiscount = item.discountPrice && item.discountPrice < item.price;
@@ -119,40 +99,12 @@ export const CartPage: React.FC = () => {
                                         key={item.id}
                                         className="bg-white/8 backdrop-blur-sm border border-white/10 rounded-2xl p-6 hover:bg-white/12 transition-all duration-200"
                                     >
-                                        {/* Top row: name + badge + delete */}
+                                        {/* Top row: name + delete */}
                                         <div className="flex items-start justify-between gap-4 mb-4">
                                             <div className="flex-1">
-                                                <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                    <h3 className="font-bold text-white text-lg leading-snug">
-                                                        {item.name}
-                                                    </h3>
-                                                    {plan && (
-                                                        <span className={clsx(
-                                                            'text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-full border',
-                                                            CATEGORY_COLORS[plan.category] ?? 'bg-gray-500/10 text-gray-400 border-gray-400/30'
-                                                        )}>
-                                                            {CATEGORY_LABELS[plan.category] ?? plan.category}
-                                                        </span>
-                                                    )}
-                                                </div>
-
-                                                {/* Plan details */}
-                                                {plan && (
-                                                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-blue-200/60 mt-1">
-                                                        <span className="flex items-center gap-1">
-                                                            <Waves size={11} /> {plan.sessions} ședințe
-                                                        </span>
-                                                        <span className="flex items-center gap-1">
-                                                            <Clock size={11} /> Durată: {plan.duration}
-                                                        </span>
-                                                        {hasDiscount && (
-                                                            <span className="flex items-center gap-1 text-emerald-400 font-medium">
-                                                                <Tag size={11} />
-                                                                Preț redus
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                )}
+                                                <h3 className="font-bold text-white text-lg leading-snug mb-1">
+                                                    {item.name}
+                                                </h3>
 
                                                 {/* Savings badge */}
                                                 {hasDiscount && savings > 0 && (

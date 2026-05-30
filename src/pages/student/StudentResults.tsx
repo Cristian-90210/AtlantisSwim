@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockCoaches } from '../../data/mockData';
-import { resultsService } from '../../services/api';
+import { resultsService, coachService } from '../../services/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Trophy, TrendingUp, Timer, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
-import type { SwimmingResult } from '../../types';
+import type { SwimmingResult, Coach } from '../../types';
 
 export const StudentResults: React.FC = () => {
     const { user } = useAuth();
     const [results, setResults] = useState<SwimmingResult[]>([]);
+    const [coaches, setCoaches] = useState<Coach[]>([]);
 
     useEffect(() => {
+        coachService.getAll().then(setCoaches);
         if (user) {
             resultsService.getByStudent(user.id).then(setResults);
         }
@@ -57,7 +58,7 @@ export const StudentResults: React.FC = () => {
     };
 
     const getCoachName = (coachId: string) => {
-        return mockCoaches.find(c => c.id === coachId)?.name ?? '—';
+        return coaches.find(c => c.id === coachId)?.name ?? '—';
     };
 
     return (

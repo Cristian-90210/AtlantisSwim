@@ -2,14 +2,12 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '../components/Card';
 import { PageHeader } from '../components/PageHeader';
 import { useAuth } from '../context/AuthContext';
-import { Shield, Bell, User as UserIcon, Activity, Calendar, Users, BarChart3, Clock, FileText, CreditCard, Edit2, Trophy, CheckCircle, XCircle, RotateCcw, Gift, Send, Save, ChevronLeft, ChevronRight, MessageCircle, Inbox, Star } from 'lucide-react';
+import { Shield, Bell, User as UserIcon, Activity, Calendar, Users, BarChart3, Clock, FileText, CreditCard, Edit2, Trophy, CheckCircle, XCircle, RotateCcw, Gift, Send, Save, ChevronLeft, ChevronRight, MessageCircle, Inbox } from 'lucide-react';
 
-import { Button } from '../components/Button';
 import { useTranslation } from 'react-i18next';
-import { mockStudents, mockCoaches, mockBookings } from '../data/mockData';
 import { UserRole, getRoleKey } from '../types';
-import type { StudentNote, Subscription, CoachScheduleSlot, SwimmingResult, AttendanceRecord, SpecialOffer, SwimStyle, SwimDistance } from '../types';
-import { noteService, subscriptionService, scheduleService, resultsService, attendanceService, offerService } from '../services/api';
+import type { StudentNote, Subscription, CoachScheduleSlot, SwimmingResult, AttendanceRecord, SpecialOffer, SwimStyle, SwimDistance, Student, Coach, Booking } from '../types';
+import { noteService, subscriptionService, scheduleService, resultsService, attendanceService, offerService, studentService, coachService, reservationService } from '../services/api';
 import { clsx } from 'clsx';
 
 export const AdminProfile: React.FC = () => {
@@ -34,6 +32,9 @@ export const AdminProfile: React.FC = () => {
     const [allResults, setAllResults] = useState<SwimmingResult[]>([]);
     const [allAttendance, setAllAttendance] = useState<AttendanceRecord[]>([]);
     const [offers, setOffers] = useState<SpecialOffer[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
+    const [coaches, setCoaches] = useState<Coach[]>([]);
+    const [bookings, setBookings] = useState<Booking[]>([]);
 
     // Student-specific states
     const [mySubscription, setMySubscription] = useState<Subscription | null>(null);
@@ -47,17 +48,18 @@ export const AdminProfile: React.FC = () => {
     const [recoveryTime, setRecoveryTime] = useState<string>('');
 
     // Form states
-    const [noteForm, setNoteForm] = useState({ studentId: 's1', content: '' });
-    const [scheduleForm, setScheduleForm] = useState({ coachId: 'c1', dayOfWeek: 'Monday', startTime: '09:00', endTime: '11:00', maxStudents: 8 });
-    const [resultForm, setResultForm] = useState({ studentId: 's1', coachId: 'c1', style: 'freestyle' as SwimStyle, distance: '25m' as SwimDistance, time: '' });
-    const [offerForm, setOfferForm] = useState({ studentId: 's1', title: '', description: '', discount: 10, validUntil: '2026-03-15' });
+    const [noteForm, setNoteForm] = useState({ studentId: '', content: '' });
+    const [scheduleForm, setScheduleForm] = useState({ coachId: '', dayOfWeek: 'Monday', startTime: '09:00', endTime: '11:00', maxStudents: 8 });
+    const [resultForm, setResultForm] = useState({ studentId: '', coachId: '', style: 'freestyle' as SwimStyle, distance: '25m' as SwimDistance, time: '' });
+    const [offerForm, setOfferForm] = useState({ studentId: '', title: '', description: '', discount: 10, validUntil: new Date(Date.now() + 7 * 24 * 3600000).toISOString().split('T')[0] });
+    const [stubError, setStubError] = useState('');
     const [editingScheduleId, setEditingScheduleId] = useState<string | null>(null);
 
     // Student bookings
     const studentBookings = useMemo(() => {
         if (role !== UserRole.Student || !user) return [];
-        return mockBookings.filter(b => b.studentId === user.id);
-    }, [user, role]);
+        return bookings.filter(b => b.studentId === user.id);
+    }, [user, role, bookings]);
 
     useEffect(() => {
         noteService.getAll().then(setNotes);
@@ -66,43 +68,71 @@ export const AdminProfile: React.FC = () => {
         resultsService.getAll().then(setAllResults);
         attendanceService.getAll().then(setAllAttendance);
         offerService.getAll().then(setOffers);
+        studentService.getAll().then(setStudents);
+        coachService.getAll().then(setCoaches);
 
-        // Student-specific data
+        // Role-specific data
         if (role === UserRole.Student && user) {
             subscriptionService.getByStudent(user.id).then(sub => setMySubscription(sub || null));
             attendanceService.getByStudent(user.id).then(setStudentAttendance);
             resultsService.getByStudent(user.id).then(setStudentResults);
+            reservationService.getByStudent(user.id).then(setBookings);
+        } else if (role === UserRole.Coach && user) {
+            reservationService.getByCoach(user.id).then(setBookings);
+        } else if (role === UserRole.Admin) {
+            reservationService.getAll().then(setBookings);
         }
     }, [role, user]);
 
+    // Seed form dropdowns once data arrives
+    useEffect(() => {
+        if (students.length > 0) {
+            setNoteForm(prev   => prev.studentId   ? prev : { ...prev, studentId: students[0].id });
+            setResultForm(prev => prev.studentId   ? prev : { ...prev, studentId: students[0].id });
+            setOfferForm(prev  => prev.studentId   ? prev : { ...prev, studentId: students[0].id });
+        }
+    }, [students]);
+
+    useEffect(() => {
+        if (coaches.length > 0) {
+            setScheduleForm(prev => prev.coachId ? prev : { ...prev, coachId: coaches[0].id });
+            setResultForm(prev   => prev.coachId  ? prev : { ...prev, coachId:  coaches[0].id });
+        }
+    }, [coaches]);
+
     const stats = [
-        { label: 'Total Students', value: mockStudents.length.toString(), sub: 'Active accounts', icon: Users, color: 'text-host-blue' },
-        { label: 'New Today', value: '12', sub: 'Registrations', icon: UserIcon, color: 'text-host-cyan' },
-        { label: 'This Week', value: '45', sub: 'Registrations', icon: Calendar, color: 'text-purple-500' },
-        { label: 'This Month', value: '189', sub: 'Registrations', icon: BarChart3, color: 'text-indigo-500' },
-        { label: 'Total Courses', value: '24', sub: 'All categories', icon: Activity, color: 'text-green-500' },
-        { label: 'Courses Today', value: '8', sub: 'Sessions scheduled', icon: Clock, color: 'text-emerald-500' },
-        { label: 'Week Sessions', value: '42', sub: 'Completed', icon: Calendar, color: 'text-teal-500' },
-        { label: 'Month Sessions', value: '156', sub: 'Completed', icon: BarChart3, color: 'text-cyan-500' },
+        { label: 'Total Elevi',       value: students.length.toString(),                                                               sub: 'Conturi înregistrate',  icon: Users,      color: 'text-host-blue'   },
+        { label: 'Total Antrenori',   value: coaches.length.toString(),                                                                sub: 'Antrenori activi',       icon: UserIcon,   color: 'text-host-cyan'   },
+        { label: 'Abonamente',        value: subscriptions.length.toString(),                                                          sub: 'Toate planurile',        icon: CreditCard, color: 'text-purple-500'  },
+        { label: 'Abonamente active', value: subscriptions.filter(s => new Date(s.expiryDate) >= new Date()).length.toString(),        sub: 'Neexpirate',             icon: BarChart3,  color: 'text-indigo-500'  },
+        { label: 'Rezervări',         value: bookings.length.toString(),                                                               sub: 'Toate rezervările',      icon: Activity,   color: 'text-green-500'   },
+        { label: 'Prezență',          value: allAttendance.length.toString(),                                                          sub: 'Înregistrări totale',    icon: Clock,      color: 'text-emerald-500' },
+        { label: 'Sloturi orar',      value: scheduleSlots.length.toString(),                                                          sub: 'Sloturi săptămânale',    icon: Calendar,   color: 'text-teal-500'    },
+        { label: 'Rezultate înot',    value: allResults.length.toString(),                                                             sub: 'Înregistrate',           icon: Trophy,     color: 'text-cyan-500'    },
     ];
 
     // Handlers
     const handleAddNote = async () => {
         if (!noteForm.content.trim() || !user) return;
-        const student = mockStudents.find(s => s.id === noteForm.studentId);
-        const newNote = await noteService.create({
-            studentId: noteForm.studentId,
-            studentName: student?.name || '',
-            content: noteForm.content,
-            authorId: user.id,
-            authorName: user.name,
-        });
-        setNotes(prev => [...prev, newNote]);
-        setNoteForm(prev => ({ ...prev, content: '' }));
+        setStubError('');
+        try {
+            const student = students.find(s => s.id === noteForm.studentId);
+            const newNote = await noteService.create({
+                studentId: noteForm.studentId,
+                studentName: student?.name || '',
+                content: noteForm.content,
+                authorId: user.id,
+                authorName: user.name,
+            });
+            setNotes(prev => [...prev, newNote]);
+            setNoteForm(prev => ({ ...prev, content: '' }));
+        } catch {
+            setStubError('Endpoint indisponibil — funcționalitatea de note nu este implementată în backend.');
+        }
     };
 
     const handleSaveSchedule = async () => {
-        const coach = mockCoaches.find(c => c.id === scheduleForm.coachId);
+        const coach = coaches.find(c => c.id === scheduleForm.coachId);
         if (editingScheduleId) {
             const updated = await scheduleService.update(editingScheduleId, {
                 ...scheduleForm,
@@ -119,7 +149,7 @@ export const AdminProfile: React.FC = () => {
             });
             setScheduleSlots(prev => [...prev, newSlot]);
         }
-        setScheduleForm({ coachId: 'c1', dayOfWeek: 'Monday', startTime: '09:00', endTime: '11:00', maxStudents: 8 });
+        setScheduleForm({ coachId: coaches[0]?.id ?? '', dayOfWeek: 'Monday', startTime: '09:00', endTime: '11:00', maxStudents: 8 });
     };
 
     const handleEditSchedule = (slot: CoachScheduleSlot) => {
@@ -145,19 +175,24 @@ export const AdminProfile: React.FC = () => {
 
     const handleSendOffer = async () => {
         if (!offerForm.title || !user) return;
-        const student = mockStudents.find(s => s.id === offerForm.studentId);
-        const newOffer = await offerService.send({
-            studentId: offerForm.studentId,
-            studentName: student?.name || '',
-            title: offerForm.title,
-            description: offerForm.description,
-            discount: offerForm.discount,
-            validUntil: offerForm.validUntil,
-            sentBy: user.id,
-            sentByName: 'Admin', // Assuming Admin for now
-        });
-        setOffers(prev => [...prev, newOffer]);
-        setOfferForm({ studentId: 's1', title: '', description: '', discount: 10, validUntil: '2026-03-15' });
+        setStubError('');
+        try {
+            const student = students.find(s => s.id === offerForm.studentId);
+            const newOffer = await offerService.send({
+                studentId: offerForm.studentId,
+                studentName: student?.name || '',
+                title: offerForm.title,
+                description: offerForm.description,
+                discount: offerForm.discount,
+                validUntil: offerForm.validUntil,
+                sentBy: user.id,
+                sentByName: user.name,
+            });
+            setOffers(prev => [...prev, newOffer]);
+            setOfferForm(prev => ({ ...prev, title: '', description: '' }));
+        } catch {
+            setStubError('Endpoint indisponibil — funcționalitatea de oferte nu este implementată în backend.');
+        }
     };
 
     const allTabs = [
@@ -292,7 +327,11 @@ export const AdminProfile: React.FC = () => {
                                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border-l-4 border-l-host-cyan flex items-center justify-between">
                                         <div>
                                             <p className="text-gray-500 uppercase text-xs font-bold tracking-wider mb-1">Status Abonament</p>
-                                            <p className="text-2xl font-extrabold text-host-cyan">Activ</p>
+                                            <p className="text-2xl font-extrabold text-host-cyan">
+                                                {mySubscription
+                                                    ? (new Date(mySubscription.expiryDate) < new Date() ? 'Expirat' : 'Activ')
+                                                    : 'Fără abonament'}
+                                            </p>
                                         </div>
                                         <div className="bg-cyan-50 dark:bg-cyan-900/30 p-3 rounded-full text-host-cyan">
                                             <CreditCard size={24} />
@@ -301,7 +340,14 @@ export const AdminProfile: React.FC = () => {
                                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-lg border-l-4 border-l-host-blue flex items-center justify-between">
                                         <div>
                                             <p className="text-gray-500 uppercase text-xs font-bold tracking-wider mb-1">Următoarea Sesiune</p>
-                                            <p className="text-xl font-bold text-gray-800 dark:text-white">Azi, 18:00</p>
+                                            <p className="text-xl font-bold text-gray-800 dark:text-white">
+                                                {(() => {
+                                                    const next = studentBookings
+                                                        .filter(b => b.status === 'upcoming')
+                                                        .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime())[0];
+                                                    return next ? `${next.date} • ${next.time}` : 'Nicio sesiune';
+                                                })()}
+                                            </p>
                                         </div>
                                         <div className="bg-blue-50 dark:bg-blue-900/30 p-3 rounded-full text-host-blue">
                                             <Calendar size={24} />
@@ -332,38 +378,30 @@ export const AdminProfile: React.FC = () => {
                                     </div>
                                 </div>
 
-                                <Card header="Recent Logins & Activity" className="border border-gray-100 dark:border-gray-700/60 shadow-xl rounded-2xl">
+                                <Card header="Elevi Înregistrați (ultimii 5)" className="border border-gray-100 dark:border-gray-700/60 shadow-xl rounded-2xl">
                                     <div className="overflow-x-auto">
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">User / IP</th>
-                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">First Visit</th>
-                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Last Visit</th>
-                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Visits</th>
-                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Agent</th>
-                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase text-right">Actions</th>
+                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Utilizator</th>
+                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Email</th>
+                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Nivel</th>
+                                                    <th className="p-4 text-xs font-bold text-gray-500 uppercase">Status</th>
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                                {mockStudents.slice(0, 5).map((s, i) => (
-                                                    <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                {students.slice(0, 5).map(s => (
+                                                    <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                                         <td className="p-4">
                                                             <div className="font-bold text-host-blue dark:text-host-cyan">{s.name}</div>
-                                                            <div className="text-xs text-gray-400">192.168.1.{10 + i}</div>
+                                                            <div className="text-xs text-gray-400">ID: {s.id}</div>
                                                         </td>
-                                                        <td className="p-4 text-sm text-gray-600 dark:text-gray-300">12.02.2026, 09:00</td>
-                                                        <td className="p-4 text-sm text-gray-600 dark:text-gray-300">Today, 10:{30 + i}</td>
+                                                        <td className="p-4 text-sm text-gray-600 dark:text-gray-300">{s.email}</td>
+                                                        <td className="p-4 text-sm text-gray-500">{s.level}</td>
                                                         <td className="p-4">
-                                                            <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">{1 + i * 2}</span>
-                                                        </td>
-                                                        <td className="p-4 text-sm text-gray-500 truncate max-w-[150px]">
-                                                            Mozilla/5.0 (Windows NT 10.0...
-                                                        </td>
-                                                        <td className="p-4 text-right">
-                                                            <Button variant="secondary" className="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-500 hover:text-white border-transparent h-auto text-xs">
-                                                                Block
-                                                            </Button>
+                                                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold ${s.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                                                {s.status}
+                                                            </span>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -390,7 +428,7 @@ export const AdminProfile: React.FC = () => {
                                     onChange={e => setNoteForm(prev => ({ ...prev, studentId: e.target.value }))}
                                     className="rounded border-gray-300 p-2 text-sm focus:border-host-cyan outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600 md:w-48"
                                 >
-                                    {mockStudents.map(s => (
+                                    {students.map(s => (
                                         <option key={s.id} value={s.id}>{s.name}</option>
                                     ))}
                                 </select>
@@ -409,6 +447,9 @@ export const AdminProfile: React.FC = () => {
                                     Salvează
                                 </button>
                             </div>
+                            {stubError && activeTab === 'notes' && (
+                                <p className="mt-3 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-2">{stubError}</p>
+                            )}
                         </div>
 
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
@@ -551,84 +592,68 @@ export const AdminProfile: React.FC = () => {
                 {activeTab === 'schedule' && (
                     <div className="space-y-8 animate-in fade-in duration-500">
                         {role === UserRole.Coach ? (
-                            <>
-                                <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center">
-                                        <Calendar className="mr-2 text-host-cyan" />
-                                        Programul Meu & Prezență
-                                    </h2>
-                                    <div className="flex space-x-2">
-                                        <Button variant="secondary" className="text-sm">Săptămâna Aceasta</Button>
-                                        <Button variant="primary" className="text-sm">Azi</Button>
+                            // Real coach schedule: slots + upcoming bookings
+                            <div className="space-y-8">
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                    <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
+                                        <Calendar className="text-host-cyan" size={22} />
+                                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Sloturi Orar Săptămânal</h2>
                                     </div>
-                                </div>
-
-                                {/* Today's Classes */}
-                                <div className="space-y-6">
-                                    {['09:00', '10:30', '16:00', '17:30'].map((time, idx) => (
-                                        <div key={idx} className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border-l-4 border-l-host-cyan overflow-hidden">
-                                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50/50 dark:bg-gray-700/20">
-                                                <div>
-                                                    <div className="flex items-center space-x-3">
-                                                        <span className="text-2xl font-black text-gray-800 dark:text-white">{time}</span>
-                                                        <span className="px-3 py-1 rounded-full bg-host-cyan/10 text-host-cyan text-xs font-bold uppercase tracking-wider">
-                                                            Grupa {idx % 2 === 0 ? 'Începători' : 'Avansați'}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-gray-500 mt-1">
-                                                        <Users className="inline w-4 h-4 mr-1" />
-                                                        {8 + idx} Elevi înscriși
-                                                    </p>
-                                                </div>
-                                                <Button variant="secondary" className="text-xs">Vezi Detalii</Button>
-                                            </div>
-
-                                            {/* Student List for Attendance */}
-                                            <div className="p-0">
-                                                <table className="w-full text-left">
-                                                    <thead className="bg-gray-50 dark:bg-gray-800 text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
-                                                        <tr>
-                                                            <th className="p-4 font-semibold pl-6">Nume Elev</th>
-                                                            <th className="p-4 font-semibold">Status</th>
-                                                            <th className="p-4 font-semibold text-right pr-6">Acțiune</th>
+                                    {scheduleSlots.length > 0 ? (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left">
+                                                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 text-sm uppercase tracking-wider">
+                                                    <tr>
+                                                        <th className="p-4 font-semibold">Zi</th>
+                                                        <th className="p-4 font-semibold">Interval</th>
+                                                        <th className="p-4 font-semibold">Elevi / Max</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                                    {scheduleSlots.map(slot => (
+                                                        <tr key={slot.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                                            <td className="p-4 font-bold text-gray-800 dark:text-white">{slot.dayOfWeek}</td>
+                                                            <td className="p-4 text-gray-600 dark:text-gray-300">{slot.startTime} – {slot.endTime}</td>
+                                                            <td className="p-4">
+                                                                <span className="font-bold text-host-cyan">{slot.currentStudents}</span>
+                                                                <span className="text-gray-400"> / {slot.maxStudents}</span>
+                                                            </td>
                                                         </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                                        {mockStudents.slice(0, 4 + idx).map(s => (
-                                                            <tr key={s.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                                                                <td className="p-4 pl-6 font-bold text-gray-700 dark:text-gray-200 flex items-center">
-                                                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-cyan-300 flex items-center justify-center text-white text-xs mr-3 font-bold shadow-sm">
-                                                                        {s.name.charAt(0)}
-                                                                    </div>
-                                                                    {s.name}
-                                                                </td>
-                                                                <td className="p-4">
-                                                                    <span className="text-xs font-bold text-gray-400 uppercase">Nesetat</span>
-                                                                </td>
-                                                                <td className="p-4 text-right pr-6">
-                                                                    <div className="flex justify-end space-x-2">
-                                                                        <button className="w-8 h-8 rounded-full bg-green-100 text-green-600 hover:bg-green-500 hover:text-white flex items-center justify-center transition-all" title="Prezent">
-                                                                            <CheckCircle size={16} />
-                                                                        </button>
-                                                                        <button className="w-8 h-8 rounded-full bg-red-100 text-red-600 hover:bg-red-500 hover:text-white flex items-center justify-center transition-all" title="Absent">
-                                                                            <XCircle size={16} />
-                                                                        </button>
-                                                                        <button className="w-8 h-8 rounded-full bg-yellow-100 text-yellow-600 hover:bg-yellow-500 hover:text-white flex items-center justify-center transition-all" title="Recuperare">
-                                                                            <RotateCcw size={16} />
-                                                                        </button>
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </div>
-                                    ))}
+                                    ) : (
+                                        <div className="p-10 text-center text-gray-400 text-sm">Nu există sloturi orar configurate.</div>
+                                    )}
                                 </div>
-                            </>
+
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                    <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+                                        <h2 className="text-xl font-bold text-gray-800 dark:text-white">Rezervări Upcoming</h2>
+                                    </div>
+                                    {bookings.filter(b => b.status === 'upcoming').length > 0 ? (
+                                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                            {bookings.filter(b => b.status === 'upcoming').map(b => (
+                                                <div key={b.id} className="p-4 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                                                    <div>
+                                                        <div className="font-bold text-gray-800 dark:text-gray-200">{b.studentName ?? b.studentId}</div>
+                                                        <div className="text-xs text-gray-500">{b.courseName ?? b.courseId}</div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <div className="font-bold text-host-cyan">{b.date}</div>
+                                                        <div className="text-xs text-gray-500">{b.time}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="p-10 text-center text-gray-400 text-sm">Nu există rezervări upcoming.</div>
+                                    )}
+                                </div>
+                            </div>
                         ) : (
-                            // Existing Admin/Other Schedule View
+                            // Admin/Other Schedule View
                             <div className="space-y-8">
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-6">
                                     <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-4 flex items-center">
@@ -641,7 +666,7 @@ export const AdminProfile: React.FC = () => {
                                             onChange={e => setScheduleForm(prev => ({ ...prev, coachId: e.target.value }))}
                                             className="rounded border-gray-300 p-2 text-sm focus:border-host-cyan outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600"
                                         >
-                                            {mockCoaches.map(c => (
+                                            {coaches.map(c => (
                                                 <option key={c.id} value={c.id}>{c.name}</option>
                                             ))}
                                         </select>
@@ -728,141 +753,26 @@ export const AdminProfile: React.FC = () => {
                     </div>
                 )}
 
-                {/* Messages Tab (Coach) */}
+                {/* Messages Tab (Coach) — redirects to real-time chat */}
                 {activeTab === 'messages' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 h-[600px] flex overflow-hidden">
-                        {/* Sidebar */}
-                        <div className="w-1/3 border-r border-gray-100 dark:border-gray-700 flex flex-col">
-                            <div className="p-4 border-b border-gray-100 dark:border-gray-700">
-                                <input
-                                    type="text"
-                                    placeholder="Caută elev..."
-                                    className="w-full bg-gray-50 dark:bg-gray-900 border-none rounded-lg p-3 text-sm focus:ring-2 focus:ring-host-cyan"
-                                />
-                            </div>
-                            <div className="flex-1 overflow-y-auto">
-                                {mockStudents.slice(0, 5).map((s, i) => (
-                                    <div key={s.id} className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors ${i === 0 ? 'bg-blue-50 dark:bg-blue-900/10 border-l-4 border-host-cyan' : ''}`}>
-                                        <div className="flex justify-between items-start mb-1">
-                                            <span className="font-bold text-gray-800 dark:text-white">{s.name}</span>
-                                            <span className="text-xs text-gray-400">10:30</span>
-                                        </div>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                                            Bună ziua, aș dori să reprogramăm...
-                                        </p>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        {/* Chat Area */}
-                        <div className="w-2/3 flex flex-col bg-gray-50/30 dark:bg-gray-900/50">
-                            <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                                <h3 className="font-bold text-gray-800 dark:text-white">{mockStudents[0].name}</h3>
-                                <div className="text-xs text-green-500 font-bold flex items-center">
-                                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse" />
-                                    Online
-                                </div>
-                            </div>
-                            <div className="flex-1 p-6 overflow-y-auto space-y-4">
-                                <div className="flex justify-start">
-                                    <div className="bg-white dark:bg-gray-800 p-3 rounded-2xl rounded-tl-none shadow-sm max-w-[80%] text-sm text-gray-600 dark:text-gray-300">
-                                        Bună ziua, aș dori să reprogramăm ședința de mâine.
-                                    </div>
-                                </div>
-                                <div className="flex justify-end">
-                                    <div className="bg-host-cyan text-white p-3 rounded-2xl rounded-tr-none shadow-md max-w-[80%] text-sm">
-                                        Salut! Sigur, ce oră ar fi potrivită pentru tine?
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex space-x-2">
-                                <input
-                                    type="text"
-                                    placeholder="Scrie un mesaj..."
-                                    className="flex-1 bg-gray-50 dark:bg-gray-900 border-none rounded-xl p-3 text-sm focus:ring-2 focus:ring-host-cyan"
-                                />
-                                <button className="p-3 bg-host-cyan text-white rounded-xl hover:bg-host-blue transition-colors">
-                                    <Send size={18} />
-                                </button>
-                            </div>
-                        </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700/60 p-12 text-center">
+                        <MessageCircle className="mx-auto mb-4 text-host-cyan" size={48} />
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Chat în timp real</h2>
+                        <p className="text-gray-500 dark:text-gray-400 mb-6">Folosește pagina dedicată de chat pentru a comunica cu elevii.</p>
+                        <a href="/chat" className="inline-flex items-center gap-2 px-6 py-3 bg-host-cyan text-white font-bold text-sm rounded-full hover:bg-cyan-500 transition-colors shadow-lg">
+                            <MessageCircle size={16} /> Deschide Chat
+                        </a>
                     </div>
                 )}
 
-                {/* Requests Tab (Recovery/Trials) */}
+                {/* Requests Tab — no backend endpoint exists yet */}
                 {activeTab === 'requests' && (
-                    <div className="space-y-8 animate-in fade-in duration-500">
-                        {/* Trials */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
-                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-500/10 flex items-center justify-center text-purple-500 shrink-0">
-                                        <Star size={18} />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-lg font-bold text-gray-800 dark:text-white">Cereri Încercare (Trial)</h2>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Viitori elevi programați pentru evaluare</p>
-                                    </div>
-                                </div>
-                                <span className="bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 px-3 py-1 rounded-full text-xs font-bold">3 Cereri</span>
-                            </div>
-                            <div className="p-0">
-                                <table className="w-full text-left">
-                                    <thead className="bg-purple-50 dark:bg-purple-900/10 text-gray-500 uppercase text-xs">
-                                        <tr>
-                                            <th className="p-4 font-semibold">Nume Copil</th>
-                                            <th className="p-4 font-semibold">Vârstă</th>
-                                            <th className="p-4 font-semibold">Părinte</th>
-                                            <th className="p-4 font-semibold">Data Programată</th>
-                                            <th className="p-4 font-semibold text-right">Acțiuni</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                                        {[1, 2, 3].map(i => (
-                                            <tr key={i} className="hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-colors">
-                                                <td className="p-4 font-bold text-gray-800 dark:text-white">Matei Popescu</td>
-                                                <td className="p-4 text-gray-600">7 ani</td>
-                                                <td className="p-4 text-gray-600">Ion Popescu (07xx...)</td>
-                                                <td className="p-4 font-bold text-purple-600">Luni, 16:00</td>
-                                                <td className="p-4 text-right">
-                                                    <Button variant="primary" className="text-xs h-8 px-3">Confirmă</Button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-
-                        {/* Recovery */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700/60 overflow-hidden">
-                            <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center">
-                                <div className="flex items-center space-x-3">
-                                    <div className="w-10 h-10 rounded-full bg-yellow-50 dark:bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
-                                        <RotateCcw size={18} />
-                                    </div>
-                                    <div>
-                                        <h2 className="text-lg font-bold text-gray-800 dark:text-white">Cereri Recuperare</h2>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Elevi care recuperează absențe</p>
-                                    </div>
-                                </div>
-                                <span className="bg-yellow-50 dark:bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 px-3 py-1 rounded-full text-xs font-bold">5 Cereri</span>
-                            </div>
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {[1, 2, 3, 4, 5].map(i => (
-                                    <div key={i} className="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 p-4 rounded-xl flex justify-between items-center">
-                                        <div>
-                                            <p className="font-bold text-gray-800 dark:text-white">Elena Radu</p>
-                                            <p className="text-xs text-gray-500">Absență: 12.02.2026</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-sm font-bold text-orange-600">Marți, 17:00</p>
-                                            <button className="text-xs text-gray-400 underline hover:text-orange-500">Detalii</button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700/60 p-12 text-center">
+                        <Inbox className="mx-auto mb-4 text-gray-300 dark:text-gray-600" size={48} />
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Cereri Trial & Recuperare</h2>
+                        <p className="text-gray-500 dark:text-gray-400 text-sm max-w-md mx-auto">
+                            Funcționalitatea de gestionare a cererilor (trial, recuperare) nu este disponibilă momentan — endpoint-ul backend nu a fost implementat încă.
+                        </p>
                     </div>
                 )}
 
@@ -925,7 +835,7 @@ export const AdminProfile: React.FC = () => {
                                             )) : (
                                                 <tr><td colSpan={3} className="p-8 text-center text-gray-400">Nu ai înregistrări de prezență</td></tr>
                                             )}
-                                            {studentBookings.filter(b => b.status === 'upcoming' && !studentAttendance.some(a => a.bookingId === b.id)).map(b => (
+                                            {studentBookings.filter(b => b.status === 'upcoming' && !studentAttendance.some(a => a.studentId === (user?.id ?? '') && a.date === b.date)).map(b => (
                                                 <tr key={b.id} className="bg-blue-50/50 dark:bg-blue-900/10">
                                                     <td className="p-4 font-bold text-gray-800 dark:text-gray-200">{b.date} • {b.time}</td>
                                                     <td className="p-4">
@@ -980,7 +890,7 @@ export const AdminProfile: React.FC = () => {
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                         {allAttendance.map(a => {
-                                            const student = mockStudents.find(s => s.id === a.studentId);
+                                            const student = students.find(s => s.id === a.studentId);
                                             return (
                                                 <tr key={a.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                                                     <td className="p-4 font-bold text-gray-800 dark:text-gray-200">{student?.name || a.studentId}</td>
@@ -1066,10 +976,10 @@ export const AdminProfile: React.FC = () => {
                                 </h3>
                                 <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                                     <select value={resultForm.studentId} onChange={e => setResultForm(prev => ({ ...prev, studentId: e.target.value }))} className="rounded border-gray-300 p-2 text-sm focus:border-host-cyan outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                                        {mockStudents.map(s => (<option key={s.id} value={s.id}>{s.name}</option>))}
+                                        {students.map(s => (<option key={s.id} value={s.id}>{s.name}</option>))}
                                     </select>
                                     <select value={resultForm.coachId} onChange={e => setResultForm(prev => ({ ...prev, coachId: e.target.value }))} className="rounded border-gray-300 p-2 text-sm focus:border-host-cyan outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600">
-                                        {mockCoaches.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                                        {coaches.map(c => (<option key={c.id} value={c.id}>{c.name}</option>))}
                                     </select>
                                     <select value={resultForm.style} onChange={e => setResultForm(prev => ({ ...prev, style: e.target.value as SwimStyle }))} className="rounded border-gray-300 p-2 text-sm focus:border-host-cyan outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600">
                                         <option value="freestyle">Freestyle</option>
@@ -1106,8 +1016,8 @@ export const AdminProfile: React.FC = () => {
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                             {allResults.map(r => {
-                                                const student = mockStudents.find(s => s.id === r.studentId);
-                                                const coach = mockCoaches.find(c => c.id === r.coachId);
+                                                const student = students.find(s => s.id === r.studentId);
+                                                const coach = coaches.find(c => c.id === r.coachId);
                                                 return (
                                                     <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                                                         <td className="p-4 font-bold text-gray-800 dark:text-gray-200">{student?.name || r.studentId}</td>
@@ -1360,7 +1270,7 @@ export const AdminProfile: React.FC = () => {
                                     onChange={e => setOfferForm(prev => ({ ...prev, studentId: e.target.value }))}
                                     className="rounded border-gray-300 p-2 text-sm focus:border-host-cyan outline-none dark:bg-gray-700 dark:text-white dark:border-gray-600"
                                 >
-                                    {mockStudents.map(s => (
+                                    {students.map(s => (
                                         <option key={s.id} value={s.id}>{s.name} (Părinte)</option>
                                     ))}
                                 </select>
@@ -1404,6 +1314,9 @@ export const AdminProfile: React.FC = () => {
                                     <Send size={16} className="mr-2" /> Trimite Oferta
                                 </button>
                             </div>
+                            {stubError && activeTab === 'offers' && (
+                                <p className="mt-3 text-sm text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg px-4 py-2">{stubError}</p>
+                            )}
                         </div>
 
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">

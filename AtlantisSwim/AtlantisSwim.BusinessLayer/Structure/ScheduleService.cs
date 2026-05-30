@@ -80,6 +80,8 @@ namespace AtlantisSwim.BusinessLayer.Structure
         {
             return from s in _db.ScheduleSlots
                    join c in _db.Users on s.CoachUserId equals c.Id
+                   join co in _db.Courses on s.CourseId equals co.Id into courses
+                   from co in courses.DefaultIfEmpty()
                    orderby s.DayOfWeek, s.StartTime
                    select new ScheduleSlotDto
                    {
@@ -87,7 +89,7 @@ namespace AtlantisSwim.BusinessLayer.Structure
                        CoachUserId     = s.CoachUserId,
                        CoachName       = c.FirstName + " " + c.LastName,
                        CourseId        = s.CourseId,
-                       CourseName      = null,
+                       CourseName      = co != null ? co.Name : null,
                        DayOfWeek       = s.DayOfWeek,
                        StartTime       = s.StartTime,
                        EndTime         = s.EndTime,

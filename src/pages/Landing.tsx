@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Hero } from '../components/Hero';
 import { CTAButton } from '../components/CTAButton';
-import { subscriptionPlans, mockCoaches } from '../data/mockData';
+import { swimmingServiceService, coachService } from '../services/api';
+import type { SwimmingServiceItem } from '../services/api';
+import type { Coach } from '../types';
 import { Users, GraduationCap, Trophy, Mail, Star, Twitter, Linkedin } from 'lucide-react';
 import { SubscriptionInfoModal } from '../components/SubscriptionInfoModal';
 
@@ -41,8 +43,15 @@ export const Landing: React.FC = () => {
     const revealRef = useScrollReveal();
     const navigate = useNavigate();
 
+    const [plans, setPlans] = useState<SwimmingServiceItem[]>([]);
+    const [coaches, setCoaches] = useState<Coach[]>([]);
     const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
-    const selectedPlan = subscriptionPlans.find(p => p.id === selectedPlanId);
+    const selectedPlan = plans.find(p => String(p.id) === selectedPlanId);
+
+    useEffect(() => {
+        swimmingServiceService.getAll().then(setPlans);
+        coachService.getAll().then(setCoaches);
+    }, []);
 
     const services = [
         { title: t('landing.services.expert_coaches.title'), desc: t('landing.services.expert_coaches.desc'), icon: Trophy },
@@ -95,61 +104,31 @@ export const Landing: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {subscriptionPlans.map((plan, idx) => {
-                            const discount = plan.discountPrice ? plan.price - plan.discountPrice : null;
-                            const categoryConfig: Record<string, { label: string; icon: string; color: string }> = {
-                                standard: { label: t('landing.subscriptions.standard'), icon: '◎', color: 'bg-host-cyan/20 text-host-cyan border-host-cyan/30' },
-                                pro: { label: t('landing.subscriptions.pro'), icon: '★', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-                                individual: { label: t('landing.subscriptions.individual'), icon: '✦', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
-                                transport: { label: t('landing.subscriptions.transport'), icon: '🚐', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
-                            };
-                            const cat = categoryConfig[plan.category] || categoryConfig.standard;
-
+                        {plans.map((plan, idx) => {
+                            const planId = String(plan.id);
                             return (
                                 <div key={plan.id} className={`scroll-reveal reveal-up stagger-${Math.min(idx + 1, 6)}`}>
                                     <div
-                                        onClick={() => setSelectedPlanId(plan.id)}
+                                        onClick={() => setSelectedPlanId(planId)}
                                         className="relative cursor-pointer bg-gray-50 dark:bg-[#1a2840] rounded-2xl border border-gray-200 dark:border-slate-700/50 p-6 hover:-translate-y-1 transition-all duration-300 hover:shadow-xl hover:border-host-cyan/50 overflow-hidden h-full flex flex-col"
                                     >
-                                        {discount && (
-                                            <div className="absolute top-4 right-4">
-                                                <span className="bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-lg">
-                                                    -{discount} MDL
-                                                </span>
-                                            </div>
-                                        )}
-
                                         <div className="flex justify-start items-start mb-4">
-                                            <div className="mb-0">
-                                                <span className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${cat.color}`}>
-                                                    <span>{cat.icon}</span>
-                                                    <span>{cat.label}</span>
-                                                </span>
-                                            </div>
+                                            <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-host-cyan/20 text-host-cyan border-host-cyan/30">
+                                                <span>◎</span>
+                                                <span>{t('landing.subscriptions.standard')}</span>
+                                            </span>
                                         </div>
 
-                                        <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-3 pr-16">{t(`landing.plans.${plan.id}.name`)}</h3>
+                                        <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-3">{plan.serviceName}</h3>
 
-                                        <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400 mb-6">
-                                            <span>◷ {plan.sessions} {t('landing.subscriptions.sessions')}</span>
-                                            <span className="text-gray-300 dark:text-gray-600">·</span>
-                                            <span>{t(`landing.plans.${plan.id}.duration`)}</span>
-                                        </div>
+                                        {plan.serviceDescription && (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 line-clamp-2">{plan.serviceDescription}</p>
+                                        )}
 
                                         <div className="mt-auto">
                                             <div className="flex items-baseline space-x-3 mb-5">
-                                                {plan.discountPrice ? (
-                                                    <>
-                                                        <span className="text-3xl font-extrabold text-host-cyan">{plan.discountPrice}</span>
-                                                        <span className="text-lg text-gray-400 line-through">{plan.price}</span>
-                                                        <span className="text-sm text-gray-500 font-medium">MDL</span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <span className="text-3xl font-extrabold text-host-cyan">{plan.price}</span>
-                                                        <span className="text-sm text-gray-500 font-medium">MDL</span>
-                                                    </>
-                                                )}
+                                                <span className="text-3xl font-extrabold text-host-cyan">{plan.servicePrice}</span>
+                                                <span className="text-sm text-gray-500 font-medium">MDL</span>
                                             </div>
 
                                             <CTAButton onClick={(event) => {
@@ -251,7 +230,7 @@ export const Landing: React.FC = () => {
 
                     {/* Rest of the team */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {mockCoaches.map((coach, idx) => (
+                        {coaches.map((coach, idx) => (
                             <div
                                 key={coach.id}
                                 className={`scroll-reveal reveal-up stagger-${Math.min(idx + 1, 6)} group relative h-[420px] rounded-2xl shadow-xl overflow-hidden cursor-pointer`}
@@ -292,10 +271,10 @@ export const Landing: React.FC = () => {
                                             {coach.name}
                                         </h3>
                                         <p className="text-gray-500 dark:text-slate-400 font-bold text-sm uppercase tracking-wider mb-2 group-hover:text-host-cyan transition-colors duration-300">
-                                            {t(`coaches.${coach.id}.specialization`)}
+                                            {coach.specialization}
                                         </p>
                                         <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 px-2 leading-relaxed italic group-hover:text-gray-200 transition-colors duration-300 line-clamp-4">
-                                            "{coach.experienceYears} years of experience..."
+                                            "{coach.experienceYears} {t('landing.team.years_experience')}"
                                         </p>
                                         <div className="flex justify-center space-x-3 border-t border-gray-100 dark:border-white/10 pt-4 group-hover:border-white/20 transition-colors duration-300">
                                             <button className="p-2 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-300 hover:text-white hover:bg-[#1DA1F2] group-hover:bg-white/10 group-hover:text-white transition-all duration-300">
@@ -347,11 +326,11 @@ export const Landing: React.FC = () => {
                 <SubscriptionInfoModal
                     isOpen={!!selectedPlanId}
                     onClose={() => setSelectedPlanId(null)}
-                    planId={selectedPlan.id}
-                    name={t(`landing.plans.${selectedPlan.id}.name`)}
-                    price={selectedPlan.price}
-                    discountPrice={selectedPlan.discountPrice}
-                    category={selectedPlan.category}
+                    planId={`plan${selectedPlan.id}`}
+                    name={selectedPlan.serviceName}
+                    price={selectedPlan.servicePrice}
+                    discountPrice={null}
+                    category={t('landing.subscriptions.standard')}
                     onSelect={() => {
                         setSelectedPlanId(null);
                         navigate('/login');

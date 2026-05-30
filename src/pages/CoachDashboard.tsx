@@ -1,30 +1,28 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { mockBookings, mockStudents, mockCourses } from '../data/mockData';
-import { Calendar, CheckCircle, Clock, RotateCcw, Trophy, MessageCircle, Send, Users, User, AlertTriangle, Activity } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, RotateCcw, Trophy, MessageCircle, Users, User, AlertTriangle, Activity } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
-import type { AttendanceRecord, SwimmingResult, Message, SwimStyle, SwimDistance, StudentHealthFlag, ProgressSnapshot, RecoveryCredit, RecoveryRequest } from '../types';
-import { attendanceService, resultsService, messageService, scheduleService, healthService, progressService, recoveryService, recoveryRequestService } from '../services/api';
+import type { AttendanceRecord, SwimmingResult, SwimStyle, SwimDistance, StudentHealthFlag, ProgressSnapshot, RecoveryCredit, RecoveryRequest, Booking, Student } from '../types';
+import { attendanceService, resultsService, reservationService, studentService, scheduleService, healthService, progressService, recoveryService, recoveryRequestService } from '../services/api';
 import type { CoachScheduleSlot } from '../types';
 
 export const CoachDashboard: React.FC = () => {
     const { user } = useAuth();
     const { t } = useTranslation();
 
-    const coachId = user?.id === 'c1' ? 'c1' : 'c1';
+    const coachId = user?.id ?? '';
 
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
     const [allResults, setAllResults] = useState<SwimmingResult[]>([]);
-    const [messages, setMessages] = useState<Message[]>([]);
+    const [bookings, setBookings] = useState<Booking[]>([]);
+    const [students, setStudents] = useState<Student[]>([]);
     const [scheduleSlots, setScheduleSlots] = useState<CoachScheduleSlot[]>([]);
     const [healthFlags, setHealthFlags] = useState<StudentHealthFlag[]>([]);
     const [progressSnapshots, setProgressSnapshots] = useState<ProgressSnapshot[]>([]);
     const [recoveryCredits, setRecoveryCredits] = useState<RecoveryCredit[]>([]);
     const [recoveryRequests, setRecoveryRequests] = useState<RecoveryRequest[]>([]);
-    const [newMessage, setNewMessage] = useState('');
-    const [selectedParent, setSelectedParent] = useState('user-1');
     const [activeTab, setActiveTab] = useState<'schedule' | 'attendance' | 'results' | 'messages' | 'recovery' | 'individual' | 'count'>('schedule');
     const [confirmationDate, setConfirmationDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [confirmationHour, setConfirmationHour] = useState('17:00');
@@ -37,16 +35,18 @@ export const CoachDashboard: React.FC = () => {
     const [resultForm, setResultForm] = useState({
         date: '2026-02-19',
         hour: '17:00',
-        studentId: 's1',
+        studentId: '',
         style: 'freestyle' as SwimStyle,
         distance: '25m' as SwimDistance,
         time: '',
     });
 
     useEffect(() => {
+        if (!coachId) return;
         attendanceService.getAll().then(setAttendance);
         resultsService.getAll().then(setAllResults);
-        messageService.getByUser(coachId).then(setMessages);
+        reservationService.getByCoach(coachId).then(setBookings);
+        studentService.getAll().then(setStudents);
         scheduleService.getByCoach(coachId).then(setScheduleSlots);
         healthService.getAll().then(setHealthFlags);
         progressService.getAllLatest().then(setProgressSnapshots);
@@ -86,30 +86,31 @@ export const CoachDashboard: React.FC = () => {
         }
     }, [confirmationDate, confirmationHour, allowedConfirmationHours]);
 
+    const findStudent = (id: string) => students.find(s => s.id === id);
+
     const schedule = useMemo(() => {
-        return mockBookings
-            .filter(b => b.coachId === coachId)
-            .map(b => {
-                const student = mockStudents.find(s => s.id === b.studentId) || { name: 'Unknown Student', level: 'N/A' };
-                const course = mockCourses.find(c => c.id === b.courseId);
-                return { ...b, student, course };
-            })
+        return bookings
+            .map(b => ({
+                ...b,
+                student: findStudent(b.studentId) ?? { id: b.studentId, name: b.studentName ?? b.studentId, level: 'Beginner' as const, age: 0, email: '', status: 'Active' as const, role: 1 as const },
+                course: { id: b.courseId, title: b.courseName ?? b.courseId },
+            }))
             .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
-    }, [coachId]);
+    }, [bookings, students]);
 
     const coachedStudents = useMemo(() => {
         return Array.from(new Set(schedule.map(session => session.studentId)))
-            .map(studentId => mockStudents.find(student => student.id === studentId))
-            .filter((student): student is (typeof mockStudents)[number] => Boolean(student));
-    }, [schedule]);
+            .map(studentId => findStudent(studentId))
+            .filter((student): student is Student => Boolean(student));
+    }, [schedule, students]);
 
     const resultHourOptions = useMemo(() => getResultHoursForDate(resultForm.date), [resultForm.date]);
 
     const resultStudents = useMemo(() => {
         const scheduledStudents = schedule
             .filter(session => session.date === resultForm.date && session.time === resultForm.hour)
-            .map(session => mockStudents.find(student => student.id === session.studentId))
-            .filter((student): student is (typeof mockStudents)[number] => Boolean(student));
+            .map(session => findStudent(session.studentId))
+            .filter((student): student is Student => Boolean(student));
 
         if (scheduledStudents.length > 0) {
             return scheduledStudents.filter((student, index, list) => list.findIndex(item => item.id === student.id) === index);
@@ -119,7 +120,7 @@ export const CoachDashboard: React.FC = () => {
         if (slotIndex === -1) return [];
 
         return coachedStudents.filter((_, index) => index % resultHourOptions.length === slotIndex);
-    }, [coachedStudents, resultForm.date, resultForm.hour, resultHourOptions, schedule]);
+    }, [coachedStudents, resultForm.date, resultForm.hour, resultHourOptions, schedule, students]);
 
     useEffect(() => {
         if (!resultHourOptions.includes(resultForm.hour)) {
@@ -165,14 +166,14 @@ export const CoachDashboard: React.FC = () => {
             time: session.time,
             studentName: session.student.name,
             studentLevel: session.student.level,
-            courseLabel: session.course ? t(`courses.${session.course.id}.title`) : session.courseId,
+            courseLabel: session.course?.title ?? session.courseId,
             status: session.status,
             isRecovery: false,
             sortTs: new Date(`${session.date}T${session.time}`).getTime(),
         }));
 
         const recoveryEntries = confirmedRecoveryRequests.map(request => {
-            const student = mockStudents.find(s => s.id === request.studentId);
+            const student = findStudent(request.studentId);
             const recoveryTime = '18:00';
             return {
                 id: `recovery-${request.id}`,
@@ -198,6 +199,8 @@ export const CoachDashboard: React.FC = () => {
     });
 
     const handleMarkAttendance = async (studentId: string, bookingId: string, date: string, status: AttendanceRecord['status']) => {
+        const booking = bookings.find(b => b.id === bookingId);
+        const courseId = booking?.courseId ? parseInt(booking.courseId, 10) || 0 : 0;
         const record = await attendanceService.mark({
             bookingId,
             studentId,
@@ -206,9 +209,10 @@ export const CoachDashboard: React.FC = () => {
             markedBy: coachId,
             confirmed: false,
             submittedByStudent: false,
+            courseId,
         });
         setAttendance(prev => {
-            const withoutSame = prev.filter(a => a.bookingId !== bookingId || a.studentId !== studentId);
+            const withoutSame = prev.filter(a => !(a.studentId === studentId && a.date === date));
             return [...withoutSame, record];
         });
         recoveryService.getAll().then(setRecoveryCredits);
@@ -220,9 +224,10 @@ export const CoachDashboard: React.FC = () => {
         const pendingForHour = attendance
             .filter(a => a.confirmed === false && a.submittedByStudent)
             .filter(a => {
-                const session = schedule.find(s => s.id === a.bookingId && s.studentId === a.studentId);
+                if (a.date !== confirmationDate) return false;
+                const session = schedule.find(s => s.studentId === a.studentId && s.date === a.date);
                 if (!session) return false;
-                if (session.time !== confirmationHour || a.date !== confirmationDate) return false;
+                if (session.time !== confirmationHour) return false;
                 return canStudentAppearAtHour(a.studentId, a.date, confirmationHour);
             });
 
@@ -280,12 +285,13 @@ export const CoachDashboard: React.FC = () => {
                 markedBy: coachId,
                 confirmed: false,
                 submittedByStudent: false,
+                courseId: parseInt(session.courseId, 10) || 0,
             }))
         );
 
-        const mapped = new Map(updatedRecords.map(r => [`${r.bookingId}|${r.studentId}`, r]));
+        const mapped = new Map(updatedRecords.map(r => [`${r.studentId}|${r.date}`, r]));
         setAttendance(prev => {
-            const filtered = prev.filter(a => !mapped.has(`${a.bookingId}|${a.studentId}`));
+            const filtered = prev.filter(a => !mapped.has(`${a.studentId}|${a.date}`));
             return [...filtered, ...updatedRecords];
         });
         setSessionConfirmationFeedback({
@@ -308,19 +314,6 @@ export const CoachDashboard: React.FC = () => {
         setResultForm(prev => ({ ...prev, time: '' }));
     };
 
-    const handleSendMessage = async () => {
-        if (!newMessage.trim() || !user) return;
-        const student = mockStudents.find(s => s.id === selectedParent);
-        const sent = await messageService.send({
-            senderId: user.id,
-            senderName: user.name,
-            receiverId: selectedParent,
-            receiverName: student ? `Părinte ${student.name}` : 'Părinte',
-            content: newMessage,
-        });
-        setMessages(prev => [...prev, sent]);
-        setNewMessage('');
-    };
 
     const handleConfirmRecoveryRequest = async (request: RecoveryRequest) => {
         try {
@@ -447,9 +440,10 @@ export const CoachDashboard: React.FC = () => {
 
     const pendingAttendancesForSelection = useMemo(() => {
         return attendance.filter(a => a.confirmed === false && a.submittedByStudent).filter(a => {
-            const session = schedule.find(s => s.id === a.bookingId && s.studentId === a.studentId);
+            if (a.date !== confirmationDate) return false;
+            const session = schedule.find(s => s.studentId === a.studentId && s.date === a.date);
             if (!session) return false;
-            if (session.time !== confirmationHour || a.date !== confirmationDate) return false;
+            if (session.time !== confirmationHour) return false;
             return canStudentAppearAtHour(a.studentId, a.date, confirmationHour);
         });
     }, [attendance, schedule, confirmationHour, confirmationDate]);
@@ -722,7 +716,7 @@ export const CoachDashboard: React.FC = () => {
                             <div className="space-y-3">
                                 {pendingAttendancesForSelection.map(a => {
                                     const session = schedule.find(s => s.id === a.bookingId && s.studentId === a.studentId);
-                                    const student = mockStudents.find(s => s.id === a.studentId);
+                                    const student = findStudent(a.studentId);
                                     const studentHealth = healthByStudent.get(a.studentId) ?? [];
                                     const studentProgress = progressByStudent.get(a.studentId);
                                     const activeRecovery = activeRecoveryCountByStudent.get(a.studentId) ?? 0;
@@ -845,7 +839,7 @@ export const CoachDashboard: React.FC = () => {
                                             </div>
                                             <div className="space-y-3">
                                                 {slot.sessions.map(session => {
-                                                    const existing = attendance.find(a => a.bookingId === session.id && a.studentId === session.studentId);
+                                                    const existing = attendance.find(a => a.studentId === session.studentId && a.date === session.date);
                                                     return (
                                                         <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/40 rounded-lg">
                                                             <div>
@@ -861,7 +855,7 @@ export const CoachDashboard: React.FC = () => {
                                                                         </span>
                                                                     )}
                                                                 </div>
-                                                                <div className="text-xs text-gray-500">{session.course ? t(`courses.${session.course.id}.title`) : session.courseId}</div>
+                                                                <div className="text-xs text-gray-500">{session.course?.title ?? session.courseId}</div>
                                                                 {progressByStudent.get(session.studentId) && (
                                                                     <div className="text-[10px] text-gray-500 mt-1 inline-flex items-center gap-1">
                                                                         <Activity size={12} />
@@ -903,7 +897,7 @@ export const CoachDashboard: React.FC = () => {
                             ) : (
                                 attendanceSlots.filter(slot => slot.type === 'individual').length > 0 ? (
                                     attendanceSlots.filter(slot => slot.type === 'individual').flatMap(slot => slot.sessions).map(session => {
-                                        const existing = attendance.find(a => a.bookingId === session.id && a.studentId === session.studentId);
+                                        const existing = attendance.find(a => a.studentId === session.studentId && a.date === session.date);
                                         return (
                                             <div key={session.id} className="p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                                 <div className="flex items-center space-x-4">
@@ -1066,7 +1060,7 @@ export const CoachDashboard: React.FC = () => {
                                     </thead>
                                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                         {allResults.filter(r => r.coachId === coachId).map(r => {
-                                            const student = mockStudents.find(s => s.id === r.studentId);
+                                            const student = findStudent(r.studentId);
                                             return (
                                                 <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                                                     <td className="p-4 font-medium text-gray-800 dark:text-gray-200">{student?.name || r.studentId}</td>
@@ -1088,58 +1082,15 @@ export const CoachDashboard: React.FC = () => {
                     </div>
                 )}
 
-                {/* Messages / Parent Communication Tab */}
+                {/* Messages Tab — redirects to real-time Chat */}
                 {activeTab === 'messages' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700/60 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center space-x-3">
-                            <MessageCircle className="text-host-cyan" size={24} />
-                            <h2 className="text-xl font-bold text-gray-800 dark:text-white">{t('coach_dashboard.messages.title')}</h2>
-                        </div>
-                        <div className="max-h-96 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
-                            {messages.length > 0 ? messages.map(m => (
-                                <div key={m.id} className={clsx(
-                                    "p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors",
-                                    m.senderId === coachId ? "bg-blue-50/50 dark:bg-blue-900/10" : ""
-                                )}>
-                                    <div className="flex justify-between items-start">
-                                        <span className="text-sm font-bold text-host-blue dark:text-host-cyan">{m.senderName}</span>
-                                        <span className="text-xs text-gray-400">{new Date(m.timestamp).toLocaleString()}</span>
-                                    </div>
-                                    <p className="text-sm text-gray-700 dark:text-gray-300 mt-1">{m.content}</p>
-                                </div>
-                            )) : (
-                                <div className="p-10 text-center text-gray-500 text-sm">{t('coach_dashboard.messages.no_messages')}</div>
-                            )}
-                        </div>
-                        <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800/80">
-                            <div className="flex items-center gap-3">
-                                <select
-                                    value={selectedParent}
-                                    onChange={e => setSelectedParent(e.target.value)}
-                                    className="border-none bg-gray-200 dark:bg-gray-700/80 text-sm px-5 py-2.5 outline-none focus:ring-2 focus:ring-host-cyan/30 text-gray-700 dark:text-white font-semibold transition-all duration-200 cursor-pointer appearance-none"
-                                    style={{ borderRadius: '9999px' }}
-                                >
-                                    {mockStudents.map(s => (
-                                        <option key={s.id} value={s.id}>Părinte {s.name}</option>
-                                    ))}
-                                </select>
-                                <input
-                                    type="text"
-                                    value={newMessage}
-                                    onChange={e => setNewMessage(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && handleSendMessage()}
-                                    placeholder={t('coach_dashboard.messages.placeholder')}
-                                    className="flex-1 border-none bg-gray-200 dark:bg-gray-700/80 text-sm px-5 py-2.5 outline-none focus:ring-2 focus:ring-host-cyan/30 text-gray-700 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-all duration-200"
-                                    style={{ borderRadius: '9999px' }}
-                                />
-                                <button
-                                    onClick={handleSendMessage}
-                                    className="p-2.5 bg-host-cyan text-white hover:bg-host-blue transition-all duration-200 hover:scale-105 active:scale-95 flex-shrink-0"
-                                >
-                                    <Send size={18} />
-                                </button>
-                            </div>
-                        </div>
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700/60 p-12 text-center">
+                        <MessageCircle className="mx-auto mb-4 text-host-cyan" size={48} />
+                        <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">{t('coach_dashboard.messages.title')}</h2>
+                        <p className="text-gray-500 dark:text-gray-400 mb-6">{t('coach_dashboard.messages.no_messages')}</p>
+                        <a href="/chat" className="inline-flex items-center gap-2 px-6 py-3 bg-host-cyan text-white font-bold text-sm rounded-full hover:bg-cyan-500 transition-colors shadow-lg">
+                            {t('nav.chat', { defaultValue: 'Open Chat' })}
+                        </a>
                     </div>
                 )}
 
@@ -1154,7 +1105,7 @@ export const CoachDashboard: React.FC = () => {
                             {pendingRecoveryRequests.length > 0 ? (
                                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
                                     {pendingRecoveryRequests.map(request => {
-                                        const student = mockStudents.find(s => s.id === request.studentId);
+                                        const student = findStudent(request.studentId);
                                         return (
                                             <div key={request.id} className="p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                                 <div className="flex items-center space-x-4">
@@ -1198,7 +1149,7 @@ export const CoachDashboard: React.FC = () => {
                             {recoverySessions.length > 0 ? (
                                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
                                     {recoverySessions.map(r => {
-                                        const student = mockStudents.find(s => s.id === r.studentId);
+                                        const student = findStudent(r.studentId);
                                         return (
                                             <div key={r.id} className="p-6 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                                 <div className="flex items-center space-x-4">
@@ -1241,7 +1192,7 @@ export const CoachDashboard: React.FC = () => {
                                             </div>
                                             <div>
                                                 <div className="font-bold text-gray-800 dark:text-gray-200">{s.student.name}</div>
-                                                <div className="text-xs text-gray-500">{s.course ? t(`courses.${s.course.id}.title`) : s.courseId}</div>
+                                                <div className="text-xs text-gray-500">{s.course?.title ?? s.courseId}</div>
                                             </div>
                                         </div>
                                         <div className="text-right">

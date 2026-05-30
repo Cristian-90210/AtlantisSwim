@@ -1,11 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PageHeader } from '../components/PageHeader';
-import { mockCoaches } from '../data/mockData';
-import { Star, Mail, Linkedin, Twitter } from 'lucide-react';
+import { coachService } from '../services/api';
+import type { Coach } from '../types';
+import { Star, Mail, Linkedin, Twitter, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+const CoachesSkeleton: React.FC = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {[...Array(6)].map((_, i) => (
+            <div key={i} className="h-[420px] rounded-2xl bg-gray-200 dark:bg-gray-700 animate-pulse" />
+        ))}
+    </div>
+);
 
 export const Coaches: React.FC = () => {
     const { t } = useTranslation();
+    const [coaches, setCoaches] = useState<Coach[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        coachService.getAll()
+            .then(setCoaches)
+            .catch(() => setError('Nu s-au putut încărca antrenorii. Verifică că serverul este pornit.'))
+            .finally(() => setIsLoading(false));
+    }, []);
 
     return (
         <div className="bg-gray-50 dark:bg-gray-900 min-h-screen pb-20">
@@ -71,8 +90,16 @@ export const Coaches: React.FC = () => {
                     />
                 </div>
 
+                {error && (
+                    <div className="mb-8 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm font-medium flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 shrink-0" />
+                        {error}
+                    </div>
+                )}
+
+                {isLoading ? <CoachesSkeleton /> : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {mockCoaches.map((coach) => (
+                    {coaches.map((coach) => (
                         <div key={coach.id} className="group relative h-[420px] rounded-2xl shadow-xl overflow-hidden transition-all duration-500 cursor-pointer">
 
                             {/* 1. Full Background Image (Visible on hover via z-index/opacity tricks) */}
@@ -111,11 +138,11 @@ export const Coaches: React.FC = () => {
                                         {coach.name}
                                     </h3>
                                     <p className="text-gray-500 font-bold text-sm uppercase tracking-wider mb-2 group-hover:text-host-cyan group-hover:mb-1 transition-all duration-500">
-                                        {t(`coaches.${coach.id}.specialization`)}
+                                        {coach.specialization}
                                     </p>
 
                                     <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 px-2 leading-relaxed italic group-hover:text-gray-200 group-hover:mb-3 transition-colors duration-500 line-clamp-4">
-                                        "{t('coaches_page.experience', { count: coach.experienceYears })}..."
+                                        "{coach.experienceYears} {t('landing.team.years_experience')}"
                                     </p>
 
                                     <div className="flex justify-center space-x-4 border-t border-gray-100 dark:border-gray-700 pt-4 group-hover:border-white/20 transition-colors duration-500">
@@ -134,6 +161,7 @@ export const Coaches: React.FC = () => {
                         </div>
                     ))}
                 </div>
+                )}
             </div>
         </div>
     );

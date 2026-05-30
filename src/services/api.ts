@@ -1,44 +1,18 @@
-import type { Student, Course, Coach, AnyUser, Announcement, SwimmingResult, AttendanceRecord, Message, Subscription, CoachScheduleSlot, SpecialOffer, StudentNote, RecoveryCredit, StudentHealthFlag, ProgressSnapshot, RecoveryRequest } from '../types';
+import type {
+    Student, Course, Coach, AnyUser, Announcement, SwimmingResult,
+    AttendanceRecord, Subscription, CoachScheduleSlot, SpecialOffer,
+    StudentNote, RecoveryCredit, StudentHealthFlag, ProgressSnapshot,
+    RecoveryRequest, Booking,
+} from '../types';
 import { UserRole } from '../types';
-import { mockCoaches, mockAnnouncements, mockBookings, mockSwimmingResults, mockAttendance, mockMessages, mockSubscriptions, mockCoachSchedule, mockSpecialOffers, mockStudentNotes, mockRecoveryCredits, mockStudentHealthFlags, mockProgressSnapshots } from '../data/mockData';
 import axiosInstance from '../api/axiosInstance';
 
-// Simulate async API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const ATTENDANCE_STORAGE_KEY = 'attendance_store_v2';
-const RECOVERY_STORAGE_KEY = 'recovery_store_v1';
-const RECOVERY_REQUEST_STORAGE_KEY = 'recovery_request_store_v1';
-
-const loadFromStorage = <T>(key: string, fallback: T): T => {
-    if (typeof window === 'undefined') return fallback;
-    try {
-        const raw = window.localStorage.getItem(key);
-        if (!raw) return fallback;
-        return JSON.parse(raw) as T;
-    } catch {
-        return fallback;
-    }
-};
-
-const saveToStorage = <T>(key: string, value: T): void => {
-    if (typeof window === 'undefined') return;
-    try {
-        window.localStorage.setItem(key, JSON.stringify(value));
-    } catch {
-        // Ignore storage failures in mock API
-    }
-};
-
-const attendanceStore: AttendanceRecord[] = loadFromStorage(ATTENDANCE_STORAGE_KEY, [...mockAttendance]);
-const recoveryStore: RecoveryCredit[] = loadFromStorage(RECOVERY_STORAGE_KEY, [...mockRecoveryCredits]);
-const recoveryRequestStore: RecoveryRequest[] = loadFromStorage(RECOVERY_REQUEST_STORAGE_KEY, []);
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function ageFromDob(dob: string): number {
     const birth = new Date(dob);
-    const now   = new Date();
-    let age     = now.getFullYear() - birth.getFullYear();
+    const now = new Date();
+    let age = now.getFullYear() - birth.getFullYear();
     if (now < new Date(now.getFullYear(), birth.getMonth(), birth.getDate())) age--;
     return age;
 }
@@ -48,6 +22,13 @@ function dobFromAge(age: number): string {
     d.setFullYear(d.getFullYear() - age);
     return d.toISOString();
 }
+
+function isoDate(raw: string | null | undefined): string {
+    if (!raw) return '';
+    try { return new Date(raw).toISOString().split('T')[0]; } catch { return ''; }
+}
+
+// ── Entity mappers ────────────────────────────────────────────────────────────
 
 function mapApiStudent(s: any): Student {
     return {
@@ -61,7 +42,141 @@ function mapApiStudent(s: any): Student {
     };
 }
 
-// ── Student Service (real API) ─────────────────────────────────────────────
+function mapScheduleSlot(s: any): CoachScheduleSlot {
+    return {
+        id:              String(s.id),
+        coachId:         String(s.coachUserId),
+        coachName:       s.coachName ?? '',
+        dayOfWeek:       s.dayOfWeek ?? '',
+        startTime:       s.startTime ?? '',
+        endTime:         s.endTime ?? '',
+        maxStudents:     s.maxStudents ?? 0,
+        currentStudents: s.currentStudents ?? 0,
+    };
+}
+
+type CoachEnrichment = {
+    avatar: string;
+    imagePosition?: 'top' | 'center' | 'bottom';
+    specialization: string;
+    experienceYears: number;
+    description?: string;
+};
+
+const COACH_ENRICHMENT: Record<string, CoachEnrichment> = {
+    'catalina@atlantisswim.md':  { avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755805148272508-1152x1536.jpg',  imagePosition: 'center', specialization: 'Manager', experienceYears: 5 },
+    'catalin@atlantisswim.md':   { avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755608849746448-1152x1536.jpg',  specialization: 'Antrenor Înot', experienceYears: 4 },
+    'alexandru@atlantisswim.md': { avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755805146956334-1152x1536.jpg',  specialization: 'Antrenor Înot', experienceYears: 3 },
+    'roman@atlantisswim.md':     { avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755608855957162-1536x2048.jpg',  imagePosition: 'center', specialization: 'Antrenor Înot', experienceYears: 3 },
+    'nicoleta@atlantisswim.md':  { avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755805176915236-1152x1536.jpg',  imagePosition: 'center', specialization: 'Antrenor Înot', experienceYears: 2 },
+    'dumitru@atlantisswim.md':   { avatar: 'https://atlantisswim.md/wp-content/uploads/2025/08/1755608855957162-1152x1536.jpg',  imagePosition: 'center', specialization: 'Antrenor Înot', experienceYears: 2 },
+};
+
+function mapCoach(c: any): Coach {
+    const key     = (c.email ?? '').toLowerCase();
+    const enrich  = COACH_ENRICHMENT[key];
+    const fullName = c.fullName || `${c.firstName ?? ''} ${c.lastName ?? ''}`.trim();
+    const experienceYears = Number(c.experienceYears ?? enrich?.experienceYears ?? 0);
+    return {
+        id:              String(c.id),
+        name:            fullName,
+        specialization:  c.specialization ?? enrich?.specialization ?? 'Antrenor Înot',
+        experienceYears: Number.isFinite(experienceYears) ? experienceYears : 0,
+        email:           c.email ?? '',
+        avatar:          c.avatar ?? enrich?.avatar ?? `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=0ea5e9&color=fff`,
+        description:     c.description ?? enrich?.description,
+        status:          c.isActive ? 'Active' : 'Inactive',
+        role:            UserRole.Coach,
+        imagePosition:   c.imagePosition ?? enrich?.imagePosition,
+    };
+}
+
+function mapAttendance(a: any): AttendanceRecord {
+    return {
+        id:                 String(a.id),
+        bookingId:          '',            // backend does not persist bookingId
+        studentId:          String(a.userId ?? a.studentUserId ?? ''),
+        date:               isoDate(a.date),
+        status:             (a.status?.toLowerCase() as AttendanceRecord['status']) ?? 'present',
+        markedBy:           String(a.markedByUserId ?? ''),
+        confirmed:          a.confirmed ?? false,
+        confirmedBy:        a.confirmedByUserId != null ? String(a.confirmedByUserId) : undefined,
+        confirmedAt:        a.confirmedAt ?? undefined,
+        submittedByStudent: a.submittedByStudent ?? false,
+    };
+}
+
+function mapSwimmingResult(r: any): SwimmingResult {
+    return {
+        id:        String(r.id),
+        studentId: String(r.studentUserId),
+        coachId:   String(r.coachUserId),
+        style:     r.style as SwimmingResult['style'],
+        distance:  r.distance as SwimmingResult['distance'],
+        time:      r.time ?? '',
+        date:      isoDate(r.date),
+        notes:     r.notes,
+    };
+}
+
+function mapSubscription(s: any): Subscription {
+    return {
+        id:            String(s.id),
+        planId:        s.planName ?? String(s.serviceId ?? ''),
+        studentId:     String(s.studentUserId),
+        studentName:   s.studentName ?? '',
+        paidDate:      isoDate(s.startDate),
+        amount:        s.amountPaid,
+        sessionsTotal: s.sessionsTotal,
+        sessionsUsed:  s.sessionsUsed,
+        expiryDate:    isoDate(s.expiryDate),
+    };
+}
+
+function mapBooking(b: any): Booking {
+    return {
+        id:          String(b.id),
+        studentId:   String(b.studentUserId),
+        studentName: b.studentName,
+        coachId:     String(b.coachUserId),
+        coachName:   b.coachName,
+        courseId:    String(b.courseId),
+        courseName:  b.courseName,
+        date:        isoDate(b.date),
+        time:        b.time ?? '',
+        status:      (b.status?.toLowerCase() as Booking['status']) ?? 'upcoming',
+    };
+}
+
+function parseI18nField(raw: string | undefined): { en: string; ro: string; ru: string } {
+    if (!raw) return { en: '', ro: '', ru: '' };
+    try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && 'en' in parsed) return parsed as any;
+    } catch { /* not JSON — plain string */ }
+    return { en: raw, ro: raw, ru: raw };
+}
+
+function mapAnnouncement(a: any): Announcement {
+    return {
+        id:       String(a.id),
+        title:    parseI18nField(a.title),
+        message:  parseI18nField(a.message),
+        date:     isoDate(a.createdAt),
+        target:   (a.target as Announcement['target']) ?? 'all',
+        authorId: String(a.authorUserId ?? ''),
+    };
+}
+
+function currentUserId(): number {
+    try {
+        const raw = localStorage.getItem('user');
+        if (!raw) return 0;
+        return parseInt(JSON.parse(raw).id ?? '0', 10) || 0;
+    } catch { return 0; }
+}
+
+// ── Student Service (real API) ────────────────────────────────────────────────
 
 export const studentService = {
     getAll: async (): Promise<Student[]> => {
@@ -72,47 +187,37 @@ export const studentService = {
         try {
             const res = await axiosInstance.get(`/students/${id}`);
             return mapApiStudent(res.data);
-        } catch {
-            return undefined;
-        }
+        } catch { return undefined; }
     },
     create: async (student: Student): Promise<Student> => {
-        const parts    = student.name.trim().split(' ');
+        const parts     = student.name.trim().split(' ');
         const firstName = parts[0] ?? '';
         const lastName  = parts.slice(1).join(' ') || firstName;
         const res = await axiosInstance.post('/students', {
-            firstName,
-            lastName,
-            email:        student.email,
-            phone:        '',
-            dateOfBirth:  dobFromAge(student.age),
-            swimmingLevel: student.level,
+            firstName, lastName, email: student.email,
+            phone: '', dateOfBirth: dobFromAge(student.age), swimmingLevel: student.level,
         });
         return mapApiStudent(res.data);
     },
     update: async (id: string, updates: Partial<Student>): Promise<Student> => {
         const existing = await studentService.getById(id);
         if (!existing) throw new Error('Student not found');
-        const merged   = { ...existing, ...updates };
-        const parts    = merged.name.trim().split(' ');
+        const merged    = { ...existing, ...updates };
+        const parts     = merged.name.trim().split(' ');
         const firstName = parts[0] ?? '';
         const lastName  = parts.slice(1).join(' ') || firstName;
         const res = await axiosInstance.put(`/students/${id}`, {
-            firstName,
-            lastName,
-            email:        merged.email,
-            phone:        '',
-            dateOfBirth:  dobFromAge(merged.age),
-            swimmingLevel: merged.level,
+            firstName, lastName, email: merged.email,
+            phone: '', dateOfBirth: dobFromAge(merged.age), swimmingLevel: merged.level,
         });
         return mapApiStudent(res.data);
     },
     delete: async (id: string): Promise<void> => {
         await axiosInstance.delete(`/students/${id}`);
-    }
+    },
 };
 
-// ── Course Service (real API) ──────────────────────────────────────────────
+// ── Course Service (real API) ─────────────────────────────────────────────────
 
 export const courseService = {
     getAll: async (): Promise<Course[]> => {
@@ -146,14 +251,16 @@ export const courseService = {
     },
 };
 
+// ── Coach Service (real API) ──────────────────────────────────────────────────
+
 export const coachService = {
     getAll: async (): Promise<Coach[]> => {
-        await delay(500);
-        return [...mockCoaches];
-    }
+        const res = await axiosInstance.get('/coaches');
+        return (res.data as any[]).map(mapCoach);
+    },
 };
 
-// ── User Service (real API) ────────────────────────────────────────────────
+// ── User Service (real API) ───────────────────────────────────────────────────
 
 export const userService = {
     getAll: async (): Promise<AnyUser[]> => {
@@ -185,322 +292,491 @@ export const userService = {
     },
 };
 
+// ── Reservation / Booking Service (real API) ──────────────────────────────────
+
 export const reservationService = {
-    getAll: async (): Promise<import('../types').Booking[]> => {
-        await delay(500);
-        return [...mockBookings];
+    getAll: async (): Promise<Booking[]> => {
+        const res = await axiosInstance.get('/bookings');
+        return res.data.map(mapBooking);
+    },
+    getByStudent: async (studentId: string): Promise<Booking[]> => {
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/bookings', { params: { studentId: numId } });
+        return res.data.map(mapBooking);
+    },
+    getByCoach: async (coachId: string): Promise<Booking[]> => {
+        const numId = parseInt(coachId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/bookings', { params: { coachId: numId } });
+        return res.data.map(mapBooking);
     },
     updateStatus: async (id: string, status: 'upcoming' | 'completed' | 'cancelled') => {
-        await delay(300);
-        console.log(`Booking ${id} status updated to ${status}`);
-    }
+        const numId = parseInt(id, 10);
+        await axiosInstance.put(`/bookings/${numId}/status`, { status });
+    },
+    create: async (dto: { studentUserId: number; coachUserId: number; courseId: number; date: string; time: string }): Promise<Booking> => {
+        const res = await axiosInstance.post('/bookings', dto);
+        return mapBooking(res.data);
+    },
 };
+
+// ── Announcement Service (real API) ───────────────────────────────────────────
 
 export const announcementService = {
     getAll: async (): Promise<Announcement[]> => {
-        await delay(400);
-        return [...mockAnnouncements];
+        const res = await axiosInstance.get('/announcements');
+        return (res.data as any[]).map(mapAnnouncement);
     },
-    send: async (announcement: Omit<Announcement, 'id' | 'date' | 'authorId'>) => {
-        await delay(600);
-        console.log('Announcement sent:', announcement);
-        return {
-            ...announcement,
-            id: Math.random().toString(36).substr(2, 9),
-            date: new Date().toISOString(),
-            authorId: 'admin-1'
+    send: async (announcement: Omit<Announcement, 'id' | 'date' | 'authorId'>): Promise<Announcement> => {
+        const dto = {
+            title:        JSON.stringify(announcement.title),
+            message:      JSON.stringify(announcement.message),
+            target:       announcement.target,
+            authorUserId: currentUserId(),
         };
-    }
+        const res = await axiosInstance.post('/announcements', dto);
+        return mapAnnouncement(res.data);
+    },
 };
+
+// ── Attendance Service (real API) ─────────────────────────────────────────────
 
 export const attendanceService = {
     getAll: async (): Promise<AttendanceRecord[]> => {
-        await delay(400);
-        return [...attendanceStore];
+        const res = await axiosInstance.get('/attendance');
+        return (res.data as any[]).map(mapAttendance);
     },
     getByStudent: async (studentId: string): Promise<AttendanceRecord[]> => {
-        await delay(300);
-        return attendanceStore.filter(a => a.studentId === studentId);
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/attendance', { params: { userId: numId } });
+        return (res.data as any[]).map(mapAttendance);
     },
-    mark: async (record: Omit<AttendanceRecord, 'id'>): Promise<AttendanceRecord> => {
-        await delay(400);
-        const existingIndex = attendanceStore.findIndex(
-            a => a.bookingId === record.bookingId && a.studentId === record.studentId && a.date === record.date
-        );
-        const upsertedRecord: AttendanceRecord = existingIndex >= 0
-            ? { ...attendanceStore[existingIndex], ...record }
-            : { ...record, id: 'att' + Math.random().toString(36).substr(2, 6) };
-
-        if (existingIndex >= 0) {
-            attendanceStore[existingIndex] = upsertedRecord;
-        } else {
-            attendanceStore.push(upsertedRecord);
-        }
-
-        // Automatic make-up credit when student has medical absence.
-        if (upsertedRecord.status === 'absent_medical') {
-            const existingCreditIndex = recoveryStore.findIndex(
-                c => c.sourceAttendanceId === upsertedRecord.id && c.studentId === upsertedRecord.studentId
-            );
-            const expiresAt = new Date(new Date(upsertedRecord.date).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
-            const credit: RecoveryCredit = {
-                id: existingCreditIndex >= 0 ? recoveryStore[existingCreditIndex].id : 'rc' + Math.random().toString(36).substr(2, 6),
-                studentId: upsertedRecord.studentId,
-                sourceAttendanceId: upsertedRecord.id,
-                status: 'active',
-                expiresAt,
-            };
-            if (existingCreditIndex >= 0) {
-                recoveryStore[existingCreditIndex] = credit;
-            } else {
-                recoveryStore.push(credit);
-            }
-            saveToStorage(RECOVERY_STORAGE_KEY, recoveryStore);
-        }
-
-        saveToStorage(ATTENDANCE_STORAGE_KEY, attendanceStore);
-        console.log('Attendance marked:', upsertedRecord);
-        return upsertedRecord;
+    mark: async (record: Omit<AttendanceRecord, 'id'> & { courseId?: number }): Promise<AttendanceRecord> => {
+        const numUserId   = parseInt(record.studentId, 10);
+        const numMarkedBy = parseInt(record.markedBy, 10);
+        const dto = {
+            userId:         numUserId,
+            courseId:       record.courseId ?? 0,
+            date:           new Date(record.date).toISOString(),
+            status:         record.status,
+            markedByUserId: isNaN(numMarkedBy) ? undefined : numMarkedBy,
+        };
+        const res = await axiosInstance.post('/attendance', dto);
+        return mapAttendance(res.data);
     },
     confirm: async (recordId: string, coachId: string): Promise<AttendanceRecord> => {
-        await delay(300);
-        const index = attendanceStore.findIndex(a => a.id === recordId);
-        if (index < 0) throw new Error('Attendance record not found');
-
-        const updated: AttendanceRecord = {
-            ...attendanceStore[index],
-            confirmed: true,
-            confirmedBy: coachId,
-            confirmedAt: new Date().toISOString(),
-        };
-        attendanceStore[index] = updated;
-        saveToStorage(ATTENDANCE_STORAGE_KEY, attendanceStore);
-        console.log('Attendance confirmed:', updated);
-        return updated;
+        const numId      = parseInt(recordId, 10);
+        const numCoachId = parseInt(coachId, 10);
+        const res = await axiosInstance.put(`/attendance/${numId}`, {
+            confirmed:          true,
+            confirmedByUserId:  numCoachId,
+        });
+        return mapAttendance(res.data);
     },
 };
 
-export const recoveryService = {
-    getAll: async (): Promise<RecoveryCredit[]> => {
-        await delay(200);
-        return [...recoveryStore];
-    },
-    getByStudent: async (studentId: string): Promise<RecoveryCredit[]> => {
-        await delay(200);
-        return recoveryStore.filter(c => c.studentId === studentId);
-    },
-    consume: async (creditId: string, sessionId: string): Promise<RecoveryCredit> => {
-        await delay(200);
-        const index = recoveryStore.findIndex(c => c.id === creditId);
-        if (index < 0) throw new Error('Recovery credit not found');
-        const updated: RecoveryCredit = {
-            ...recoveryStore[index],
-            status: 'consumed',
-            consumedSessionId: sessionId,
-        };
-        recoveryStore[index] = updated;
-        saveToStorage(RECOVERY_STORAGE_KEY, recoveryStore);
-        return updated;
-    }
-};
-
-export const recoveryRequestService = {
-    getAll: async (): Promise<RecoveryRequest[]> => {
-        await delay(200);
-        return [...recoveryRequestStore];
-    },
-    getByStudent: async (studentId: string): Promise<RecoveryRequest[]> => {
-        await delay(200);
-        return recoveryRequestStore.filter(r => r.studentId === studentId);
-    },
-    create: async (request: Omit<RecoveryRequest, 'id' | 'requestedAt' | 'status'>): Promise<RecoveryRequest> => {
-        await delay(250);
-        const existing = recoveryRequestStore.find(
-            r => r.studentId === request.studentId && r.date === request.date && (r.status === 'pending' || r.status === 'confirmed')
-        );
-        if (existing) return existing;
-
-        const created: RecoveryRequest = {
-            id: 'rr' + Math.random().toString(36).substr(2, 6),
-            studentId: request.studentId,
-            date: request.date,
-            status: 'pending',
-            requestedAt: new Date().toISOString(),
-        };
-        recoveryRequestStore.push(created);
-        saveToStorage(RECOVERY_REQUEST_STORAGE_KEY, recoveryRequestStore);
-        return created;
-    },
-    confirm: async (requestId: string, coachId: string): Promise<RecoveryRequest> => {
-        await delay(250);
-        const index = recoveryRequestStore.findIndex(r => r.id === requestId);
-        if (index < 0) throw new Error('Recovery request not found');
-        const updated: RecoveryRequest = {
-            ...recoveryRequestStore[index],
-            status: 'confirmed',
-            confirmedBy: coachId,
-            confirmedAt: new Date().toISOString(),
-        };
-        recoveryRequestStore[index] = updated;
-        saveToStorage(RECOVERY_REQUEST_STORAGE_KEY, recoveryRequestStore);
-        return updated;
-    },
-};
-
-export const healthService = {
-    getAll: async (): Promise<StudentHealthFlag[]> => {
-        await delay(150);
-        return [...mockStudentHealthFlags];
-    },
-    getByStudent: async (studentId: string): Promise<StudentHealthFlag[]> => {
-        await delay(150);
-        return mockStudentHealthFlags.filter(f => f.studentId === studentId && f.isActive);
-    },
-};
-
-export const progressService = {
-    getLatestByStudent: async (studentId: string): Promise<ProgressSnapshot | undefined> => {
-        await delay(150);
-        return mockProgressSnapshots
-            .filter(p => p.studentId === studentId)
-            .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())[0];
-    },
-    getAllLatest: async (): Promise<ProgressSnapshot[]> => {
-        await delay(150);
-        const byStudent = new Map<string, ProgressSnapshot>();
-        mockProgressSnapshots
-            .sort((a, b) => new Date(b.recordedAt).getTime() - new Date(a.recordedAt).getTime())
-            .forEach(snapshot => {
-                if (!byStudent.has(snapshot.studentId)) {
-                    byStudent.set(snapshot.studentId, snapshot);
-                }
-            });
-        return Array.from(byStudent.values());
-    },
-};
+// ── Swimming Results Service (real API) ───────────────────────────────────────
 
 export const resultsService = {
     getAll: async (): Promise<SwimmingResult[]> => {
-        await delay(400);
-        return [...mockSwimmingResults];
+        const res = await axiosInstance.get('/results');
+        return (res.data as any[]).map(mapSwimmingResult);
     },
     getByStudent: async (studentId: string): Promise<SwimmingResult[]> => {
-        await delay(300);
-        return mockSwimmingResults.filter(r => r.studentId === studentId);
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/results', { params: { studentId: numId } });
+        return (res.data as any[]).map(mapSwimmingResult);
     },
     create: async (result: Omit<SwimmingResult, 'id'>): Promise<SwimmingResult> => {
-        await delay(500);
-        const newResult = { ...result, id: 'r' + Math.random().toString(36).substr(2, 6) };
-        console.log('Result created:', newResult);
-        return newResult;
+        const dto = {
+            studentUserId: parseInt(result.studentId, 10),
+            coachUserId:   parseInt(result.coachId, 10),
+            style:         result.style,
+            distance:      result.distance,
+            time:          result.time,
+            date:          new Date(result.date).toISOString(),
+            notes:         result.notes,
+        };
+        const res = await axiosInstance.post('/results', dto);
+        return mapSwimmingResult(res.data);
     },
     update: async (id: string, updates: Partial<SwimmingResult>): Promise<SwimmingResult> => {
-        await delay(400);
-        const result = mockSwimmingResults.find(r => r.id === id);
-        if (!result) throw new Error('Result not found');
-        console.log('Result updated:', id, updates);
-        return { ...result, ...updates };
-    }
+        const numId   = parseInt(id, 10);
+        const current = await resultsService.getAll().then(arr => arr.find(r => r.id === id));
+        if (!current) throw new Error('Result not found');
+        const merged = { ...current, ...updates };
+        const dto = {
+            studentUserId: parseInt(merged.studentId, 10),
+            coachUserId:   parseInt(merged.coachId, 10),
+            style:         merged.style,
+            distance:      merged.distance,
+            time:          merged.time,
+            date:          new Date(merged.date).toISOString(),
+            notes:         merged.notes,
+        };
+        const res = await axiosInstance.put(`/results/${numId}`, dto);
+        return mapSwimmingResult(res.data);
+    },
 };
 
-export const messageService = {
-    getAll: async (): Promise<Message[]> => {
-        await delay(300);
-        return [...mockMessages];
-    },
-    getByUser: async (userId: string): Promise<Message[]> => {
-        await delay(300);
-        return mockMessages.filter(m => m.senderId === userId || m.receiverId === userId);
-    },
-    send: async (message: Omit<Message, 'id' | 'timestamp' | 'read'>): Promise<Message> => {
-        await delay(400);
-        const newMsg: Message = {
-            ...message,
-            id: 'm' + Math.random().toString(36).substr(2, 6),
-            timestamp: new Date().toISOString(),
-            read: false
-        };
-        console.log('Message sent:', newMsg);
-        return newMsg;
-    }
-};
+// ── Subscription Service (real API) ───────────────────────────────────────────
 
 export const subscriptionService = {
     getAll: async (): Promise<Subscription[]> => {
-        await delay(400);
-        return [...mockSubscriptions];
+        const res = await axiosInstance.get('/subscriptions');
+        return (res.data as any[]).map(mapSubscription);
     },
     getByStudent: async (studentId: string): Promise<Subscription | undefined> => {
-        await delay(300);
-        return mockSubscriptions.find(s => s.studentId === studentId);
-    }
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return undefined;
+        const res = await axiosInstance.get('/subscriptions', { params: { studentId: numId } });
+        const data = res.data;
+        if (Array.isArray(data)) {
+            const active = data.find((s: any) => s.status === 'Active') ?? data[0];
+            return active ? mapSubscription(active) : undefined;
+        }
+        return data ? mapSubscription(data) : undefined;
+    },
 };
+
+// ── Schedule Service (real API) ───────────────────────────────────────────────
 
 export const scheduleService = {
     getAll: async (): Promise<CoachScheduleSlot[]> => {
-        await delay(400);
-        return [...mockCoachSchedule];
+        const res = await axiosInstance.get('/schedule');
+        return (res.data as any[]).map(mapScheduleSlot);
     },
     getByCoach: async (coachId: string): Promise<CoachScheduleSlot[]> => {
-        await delay(300);
-        return mockCoachSchedule.filter(s => s.coachId === coachId);
+        const numId = parseInt(coachId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/schedule', { params: { coachId: numId } });
+        return (res.data as any[]).map(mapScheduleSlot);
     },
     update: async (id: string, updates: Partial<CoachScheduleSlot>): Promise<CoachScheduleSlot> => {
-        await delay(400);
-        const slot = mockCoachSchedule.find(s => s.id === id);
-        if (!slot) throw new Error('Schedule slot not found');
-        console.log('Schedule updated:', id, updates);
-        return { ...slot, ...updates };
+        const numId = parseInt(id, 10);
+        const dto: Record<string, unknown> = {};
+        if (updates.dayOfWeek     !== undefined) dto.dayOfWeek       = updates.dayOfWeek;
+        if (updates.startTime     !== undefined) dto.startTime       = updates.startTime;
+        if (updates.endTime       !== undefined) dto.endTime         = updates.endTime;
+        if (updates.maxStudents   !== undefined) dto.maxStudents     = updates.maxStudents;
+        if (updates.currentStudents !== undefined) dto.currentStudents = updates.currentStudents;
+        const res = await axiosInstance.put(`/schedule/${numId}`, dto);
+        return mapScheduleSlot(res.data);
     },
     create: async (slot: Omit<CoachScheduleSlot, 'id'>): Promise<CoachScheduleSlot> => {
-        await delay(500);
-        const newSlot = { ...slot, id: 'sch' + Math.random().toString(36).substr(2, 6) };
-        console.log('Schedule slot created:', newSlot);
-        return newSlot;
-    }
+        const numCoachId = parseInt(slot.coachId, 10);
+        const dto = {
+            coachUserId:  isNaN(numCoachId) ? 0 : numCoachId,
+            dayOfWeek:    slot.dayOfWeek,
+            startTime:    slot.startTime,
+            endTime:      slot.endTime,
+            maxStudents:  slot.maxStudents,
+        };
+        const res = await axiosInstance.post('/schedule', dto);
+        return mapScheduleSlot(res.data);
+    },
 };
 
-export const offerService = {
-    getAll: async (): Promise<SpecialOffer[]> => {
-        await delay(400);
-        return [...mockSpecialOffers];
+// ── Swimming Service (real API) — subscription plans source ───────────────────
+
+export interface SwimmingServiceItem {
+    id: number;
+    serviceName: string;
+    serviceDescription: string;
+    servicePrice: number;
+}
+
+export const swimmingServiceService = {
+    getAll: async (): Promise<SwimmingServiceItem[]> => {
+        const res = await axiosInstance.get('/swimming-service/getAll');
+        return res.data as SwimmingServiceItem[];
     },
-    send: async (offer: Omit<SpecialOffer, 'id' | 'sentDate'>): Promise<SpecialOffer> => {
-        await delay(500);
-        const newOffer: SpecialOffer = {
-            ...offer,
-            id: 'off' + Math.random().toString(36).substr(2, 6),
-            sentDate: new Date().toISOString()
-        };
-        console.log('Special offer sent:', newOffer);
-        return newOffer;
-    }
 };
 
-export const noteService = {
-    getAll: async (): Promise<StudentNote[]> => {
-        await delay(400);
-        return [...mockStudentNotes];
-    },
-    getByStudent: async (studentId: string): Promise<StudentNote[]> => {
-        await delay(300);
-        return mockStudentNotes.filter(n => n.studentId === studentId);
-    },
-    create: async (note: Omit<StudentNote, 'id' | 'createdAt'>): Promise<StudentNote> => {
-        await delay(400);
-        const newNote: StudentNote = {
-            ...note,
-            id: 'n' + Math.random().toString(36).substr(2, 6),
-            createdAt: new Date().toISOString()
-        };
-        console.log('Note created:', newNote);
-        return newNote;
-    }
-};
+// ── Server Status (real API) ──────────────────────────────────────────────────
 
 export const serverStatusService = {
     healthCheck: async (): Promise<{ status: string }> => {
-        await delay(1000);
-        throw new Error('500 Internal Server Error: Mock database connection failed');
+        const res = await axiosInstance.get('/health');
+        return { status: String(res.data) };
+    },
+};
+
+// ── Mappers for Phase-10 types ────────────────────────────────────────────────
+
+function mapRecoveryCredit(r: any): RecoveryCredit {
+    return {
+        id:                  String(r.id),
+        studentId:           String(r.studentUserId),
+        sourceAttendanceId:  r.sourceAttendanceId != null ? String(r.sourceAttendanceId) : '',
+        status:              (r.status?.toLowerCase() as RecoveryCredit['status']) ?? 'active',
+        expiresAt:           isoDate(r.expiresAt),
+        consumedSessionId:   r.consumedByBookingId != null ? String(r.consumedByBookingId) : undefined,
+    };
+}
+
+function mapRecoveryRequest(r: any): RecoveryRequest {
+    return {
+        id:           String(r.id),
+        studentId:    String(r.studentUserId),
+        date:         isoDate(r.date),
+        status:       (r.status?.toLowerCase() as RecoveryRequest['status']) ?? 'pending',
+        requestedAt:  r.requestedAt ?? '',
+        confirmedBy:  r.coachUserId != null ? String(r.coachUserId) : undefined,
+        confirmedAt:  r.confirmedAt ?? undefined,
+    };
+}
+
+function mapHealthFlag(f: any): StudentHealthFlag {
+    return {
+        id:           String(f.id),
+        studentId:    String(f.studentUserId),
+        type:         (f.type as StudentHealthFlag['type']) ?? 'other',
+        severity:     (f.severity as StudentHealthFlag['severity']) ?? 'medium',
+        protocolText: f.protocolText ?? '',
+        isActive:     f.isActive ?? true,
+    };
+}
+
+function mapProgressSnapshot(p: any): ProgressSnapshot {
+    return {
+        id:          String(p.id),
+        studentId:   String(p.studentUserId),
+        metricKey:   p.metricKey ?? '',
+        metricValue: p.metricValue ?? 0,
+        recordedAt:  p.recordedAt ?? '',
+    };
+}
+
+function mapSpecialOffer(o: any): SpecialOffer {
+    return {
+        id:          String(o.id),
+        studentId:   String(o.studentUserId),
+        studentName: o.studentName ?? '',
+        title:       o.title ?? '',
+        description: o.description ?? '',
+        discount:    o.discount ?? 0,
+        validUntil:  isoDate(o.validUntil),
+        sentBy:      String(o.sentByUserId),
+        sentByName:  o.sentByName ?? '',
+        sentDate:    isoDate(o.sentAt),
+    };
+}
+
+function mapStudentNote(n: any): StudentNote {
+    return {
+        id:          String(n.id),
+        studentId:   String(n.studentUserId),
+        studentName: n.studentName ?? '',
+        content:     n.content ?? '',
+        authorId:    String(n.authorUserId),
+        authorName:  n.authorName ?? '',
+        createdAt:   n.createdAt ?? '',
+    };
+}
+
+// ── Recovery Credits Service (real API) ───────────────────────────────────────
+
+export const recoveryService = {
+    getAll: async (): Promise<RecoveryCredit[]> => {
+        const res = await axiosInstance.get('/recovery-credits');
+        return (res.data as any[]).map(mapRecoveryCredit);
+    },
+    getByStudent: async (studentId: string): Promise<RecoveryCredit[]> => {
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/recovery-credits', { params: { studentId: numId } });
+        return (res.data as any[]).map(mapRecoveryCredit);
+    },
+    consume: async (creditId: string, bookingId: string): Promise<RecoveryCredit> => {
+        const numId = parseInt(creditId, 10);
+        const res = await axiosInstance.put(`/recovery-credits/${numId}`, {
+            status:              'consumed',
+            consumedByBookingId: parseInt(bookingId, 10) || undefined,
+        });
+        return mapRecoveryCredit(res.data);
+    },
+};
+
+// ── Recovery Requests Service (real API) ──────────────────────────────────────
+
+export const recoveryRequestService = {
+    getAll: async (): Promise<RecoveryRequest[]> => {
+        const res = await axiosInstance.get('/recovery-requests');
+        return (res.data as any[]).map(mapRecoveryRequest);
+    },
+    getByStudent: async (studentId: string): Promise<RecoveryRequest[]> => {
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/recovery-requests', { params: { studentId: numId } });
+        return (res.data as any[]).map(mapRecoveryRequest);
+    },
+    getByCoach: async (coachId: string): Promise<RecoveryRequest[]> => {
+        const numId = parseInt(coachId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/recovery-requests', { params: { coachId: numId } });
+        return (res.data as any[]).map(mapRecoveryRequest);
+    },
+    create: async (req: Omit<RecoveryRequest, 'id' | 'requestedAt' | 'status'>): Promise<RecoveryRequest> => {
+        const dto = {
+            studentUserId: parseInt(req.studentId, 10),
+            date:          new Date(req.date).toISOString(),
+        };
+        const res = await axiosInstance.post('/recovery-requests', dto);
+        return mapRecoveryRequest(res.data);
+    },
+    confirm: async (requestId: string, coachId: string): Promise<RecoveryRequest> => {
+        const numId = parseInt(requestId, 10);
+        const res = await axiosInstance.put(`/recovery-requests/${numId}`, {
+            status:     'Confirmed',
+            coachUserId: parseInt(coachId, 10) || undefined,
+        });
+        return mapRecoveryRequest(res.data);
+    },
+};
+
+// ── Health Flags Service (real API) ───────────────────────────────────────────
+
+export const healthService = {
+    getAll: async (): Promise<StudentHealthFlag[]> => {
+        const res = await axiosInstance.get('/health-flags');
+        return (res.data as any[]).map(mapHealthFlag);
+    },
+    getByStudent: async (studentId: string): Promise<StudentHealthFlag[]> => {
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/health-flags', { params: { studentId: numId } });
+        return (res.data as any[]).map(mapHealthFlag);
+    },
+    create: async (flag: Omit<StudentHealthFlag, 'id'> & { createdByUserId: string }): Promise<StudentHealthFlag> => {
+        const dto = {
+            studentUserId:   parseInt(flag.studentId, 10),
+            createdByUserId: parseInt(flag.createdByUserId, 10),
+            type:            flag.type,
+            severity:        flag.severity,
+            protocolText:    flag.protocolText,
+        };
+        const res = await axiosInstance.post('/health-flags', dto);
+        return mapHealthFlag(res.data);
+    },
+    update: async (id: string, updates: Partial<Pick<StudentHealthFlag, 'severity' | 'protocolText' | 'isActive'>>): Promise<StudentHealthFlag> => {
+        const numId = parseInt(id, 10);
+        const res = await axiosInstance.put(`/health-flags/${numId}`, updates);
+        return mapHealthFlag(res.data);
+    },
+    delete: async (id: string): Promise<void> => {
+        await axiosInstance.delete(`/health-flags/${parseInt(id, 10)}`);
+    },
+};
+
+// ── Progress Service (real API) ───────────────────────────────────────────────
+
+export const progressService = {
+    getLatestByStudent: async (studentId: string): Promise<ProgressSnapshot | undefined> => {
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return undefined;
+        const res = await axiosInstance.get('/progress', { params: { studentId: numId, latest: true } });
+        const data = res.data as any[];
+        return data.length > 0 ? mapProgressSnapshot(data[0]) : undefined;
+    },
+    getAllLatest: async (): Promise<ProgressSnapshot[]> => {
+        const res = await axiosInstance.get('/progress');
+        return (res.data as any[]).map(mapProgressSnapshot);
+    },
+    getByStudent: async (studentId: string): Promise<ProgressSnapshot[]> => {
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/progress', { params: { studentId: numId } });
+        return (res.data as any[]).map(mapProgressSnapshot);
+    },
+    create: async (snapshot: Omit<ProgressSnapshot, 'id'> & { coachId?: string }): Promise<ProgressSnapshot> => {
+        const dto = {
+            studentUserId: parseInt(snapshot.studentId, 10),
+            coachUserId:   snapshot.coachId ? parseInt(snapshot.coachId, 10) || undefined : undefined,
+            metricKey:     snapshot.metricKey,
+            metricValue:   snapshot.metricValue,
+            recordedAt:    new Date(snapshot.recordedAt).toISOString(),
+        };
+        const res = await axiosInstance.post('/progress', dto);
+        return mapProgressSnapshot(res.data);
+    },
+};
+
+// ── Special Offers Service (real API) ─────────────────────────────────────────
+
+export const offerService = {
+    getAll: async (): Promise<SpecialOffer[]> => {
+        const res = await axiosInstance.get('/offers');
+        return (res.data as any[]).map(mapSpecialOffer);
+    },
+    getByStudent: async (studentId: string): Promise<SpecialOffer[]> => {
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/offers', { params: { studentId: numId } });
+        return (res.data as any[]).map(mapSpecialOffer);
+    },
+    send: async (offer: Omit<SpecialOffer, 'id' | 'sentDate'>): Promise<SpecialOffer> => {
+        const dto = {
+            studentUserId: parseInt(offer.studentId, 10),
+            sentByUserId:  parseInt(offer.sentBy, 10),
+            title:         offer.title,
+            description:   offer.description,
+            discount:      offer.discount,
+            validUntil:    new Date(offer.validUntil).toISOString(),
+        };
+        const res = await axiosInstance.post('/offers', dto);
+        return mapSpecialOffer(res.data);
+    },
+    delete: async (id: string): Promise<void> => {
+        await axiosInstance.delete(`/offers/${parseInt(id, 10)}`);
+    },
+};
+
+// ── Student Notes Service (real API) ──────────────────────────────────────────
+
+export const noteService = {
+    getAll: async (): Promise<StudentNote[]> => {
+        const res = await axiosInstance.get('/notes');
+        return (res.data as any[]).map(mapStudentNote);
+    },
+    getByStudent: async (studentId: string): Promise<StudentNote[]> => {
+        const numId = parseInt(studentId, 10);
+        if (isNaN(numId)) return [];
+        const res = await axiosInstance.get('/notes', { params: { studentId: numId } });
+        return (res.data as any[]).map(mapStudentNote);
+    },
+    create: async (note: Omit<StudentNote, 'id' | 'createdAt'>): Promise<StudentNote> => {
+        const dto = {
+            studentUserId: parseInt(note.studentId, 10),
+            authorUserId:  parseInt(note.authorId, 10),
+            content:       note.content,
+        };
+        const res = await axiosInstance.post('/notes', dto);
+        return mapStudentNote(res.data);
+    },
+    delete: async (id: string): Promise<void> => {
+        await axiosInstance.delete(`/notes/${parseInt(id, 10)}`);
+    },
+};
+
+// ── Payment Service (real API) ────────────────────────────────────────────────
+
+export const paymentService = {
+    process: async (dto: {
+        studentUserId: number;
+        serviceId: number;
+        planName: string;
+        amount: number;
+        sessionsTotal: number;
+        method: string;
+        cardHolderName: string;
+        contactEmail: string;
+        contactPhone: string;
+    }): Promise<{ isSuccess: boolean; message?: string; transactionReference?: string }> => {
+        const res = await axiosInstance.post('/payments/process', dto);
+        return res.data;
     },
 };

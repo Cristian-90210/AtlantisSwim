@@ -32,6 +32,8 @@ namespace AtlantisSwim.Domain.Entities.Attendance
 
         public DateTime? ConfirmedAt { get; set; }
 
+        public bool SubmittedByStudent { get; set; } = false;
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

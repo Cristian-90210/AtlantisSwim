@@ -1,7 +1,6 @@
 ﻿import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { getRoleKey } from '../types';
-import type { AppNotification, UserRole } from '../types';
-import { mockNotifications } from '../data/mockData';
+import type { AppNotification } from '../types';
 import { useAuth } from './AuthContext';
 
 // ── Notificări simulate "în timp real" ──────────────────────────────────────
@@ -29,25 +28,16 @@ const INTERVAL_MS = 20000; // Notificare nouă la 20 de secunde
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
 
-    // Filtrăm notificările inițiale în funcție de rol
-    const getInitialNotifications = useCallback((role: UserRole | undefined): AppNotification[] => {
-        if (role === undefined) return [];
-        const key = getRoleKey(role);
-        return mockNotifications.filter(n => n.targetRole === 'all' || n.targetRole === key);
-    }, []);
-
-    const [notifications, setNotifications] = useState<AppNotification[]>(() =>
-        getInitialNotifications(user?.role)
-    );
+    const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
     // Când se schimbă userul (login/logout), resetăm notificările
     const prevUserIdRef = useRef<string | undefined>(user?.id);
     useEffect(() => {
         if (prevUserIdRef.current !== user?.id) {
             prevUserIdRef.current = user?.id;
-            setNotifications(getInitialNotifications(user?.role));
+            setNotifications([]);
         }
-    }, [user, getInitialNotifications]);
+    }, [user]);
 
     // Simulare "timp real": adaugă o notificare din pool la interval
     const liveIndexRef = useRef(0);

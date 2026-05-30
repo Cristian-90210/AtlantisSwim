@@ -1,5 +1,6 @@
-import React from 'react';
-import { mockCoaches } from '../data/mockData';
+import React, { useState, useEffect } from 'react';
+import { coachService } from '../services/api';
+import type { Coach } from '../types';
 import { clsx } from 'clsx';
 import { CheckCircle } from 'lucide-react';
 
@@ -9,9 +10,15 @@ interface CoachSelectorProps {
 }
 
 export const CoachSelector: React.FC<CoachSelectorProps> = ({ selectedCoachId, onSelect }) => {
+    const [coaches, setCoaches] = useState<Coach[]>([]);
+
+    useEffect(() => {
+        coachService.getAll().then(setCoaches);
+    }, []);
+
     return (
         <div className="grid grid-cols-1 gap-4">
-            {mockCoaches.map(coach => {
+            {coaches.map(coach => {
                 const isSelected = selectedCoachId === coach.id;
                 return (
                     <div

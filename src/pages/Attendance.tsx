@@ -10,8 +10,7 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { Button } from '../components/Button';
-import { mockBookings, mockCoaches, mockCourses } from '../data/mockData';
-import { attendanceService } from '../services/api';
+import { attendanceService, reservationService } from '../services/api';
 import type { AttendanceRecord, Booking } from '../types';
 
 /* ──────────────────────────────────────────────────────────────────────────────
@@ -96,26 +95,26 @@ export const Attendance: React.FC = () => {
 
     // ── State ──
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+    const [myBookings, setMyBookings] = useState<Booking[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [selectedDay, setSelectedDay] = useState<string | null>(null);
     const [calendarMonth, setCalendarMonth] = useState(new Date());
     const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-    // ── Data fetch (simulated async) ──
+    // ── Data fetch ──
     useEffect(() => {
         if (!user) return;
         setIsLoading(true);
-        attendanceService.getByStudent(user.id).then(data => {
-            setAttendance(data);
+        Promise.all([
+            attendanceService.getByStudent(user.id),
+            reservationService.getByStudent(user.id),
+        ]).then(([att, bks]) => {
+            setAttendance(att);
+            setMyBookings(bks.filter(b => b.status !== 'cancelled'));
             setIsLoading(false);
         });
     }, [user]);
-
-    // ── Auto-set calendar to first training month ──
-    const myBookings = useMemo(() =>
-        mockBookings.filter(b => b.studentId === user?.id && b.status !== 'cancelled'),
-    [user]);
 
     useEffect(() => {
         if (myBookings.length === 0) return;
@@ -455,13 +454,10 @@ export const Attendance: React.FC = () => {
 
                                     {/* Training details */}
                                     <div className="p-5 space-y-4">
-                                        {selectedBookings.map(booking => {
-                                            const coach = mockCoaches.find(c => c.id === booking.coachId);
-                                            const course = mockCourses.find(c => c.id === booking.courseId);
-                                            return (
+                                        {selectedBookings.map(booking => (
                                                 <div key={booking.id} className="p-4 rounded-xl bg-gray-50 dark:bg-gray-700/30 border border-gray-100 dark:border-gray-700">
                                                     <div className="flex items-center justify-between mb-3">
-                                                        <span className="font-bold text-gray-800 dark:text-white text-sm">{course?.title ?? 'Sesiune'}</span>
+                                                        <span className="font-bold text-gray-800 dark:text-white text-sm">{booking.courseName ?? 'Sesiune'}</span>
                                                         {selectedRecord && <StatusBadge status={selectedRecord.status} />}
                                                     </div>
                                                     <div className="space-y-1.5 text-sm text-gray-500 dark:text-gray-400">
@@ -471,7 +467,7 @@ export const Attendance: React.FC = () => {
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <CalendarDays size={14} className="text-gray-400" />
-                                                            <span>Antrenor: <span className="font-semibold text-gray-700 dark:text-gray-200">{coach?.name ?? '—'}</span></span>
+                                                            <span>Antrenor: <span className="font-semibold text-gray-700 dark:text-gray-200">{booking.coachName ?? '—'}</span></span>
                                                         </div>
                                                     </div>
 
@@ -491,8 +487,7 @@ export const Attendance: React.FC = () => {
                                                         </div>
                                                     )}
                                                 </div>
-                                            );
-                                        })}
+                                            ))}
 
                                         {/* Action buttons */}
                                         {!selectedRecord && (
@@ -583,8 +578,7 @@ export const Attendance: React.FC = () => {
                     ) : recentActivity.length > 0 ? (
                         <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[400px] overflow-y-auto">
                             {recentActivity.map(record => {
-                                const booking = myBookings.find(b => b.id === record.bookingId);
-                                const course = booking ? mockCourses.find(c => c.id === booking.courseId) : null;
+                                const booking = myBookings.find(b => b.date === record.date);
                                 return (
                                     <div
                                         key={record.id}
@@ -598,7 +592,7 @@ export const Attendance: React.FC = () => {
                                             </div>
                                             <div>
                                                 <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">
-                                                    {course?.title ?? `Sesiune ${record.bookingId}`}
+                                                    {booking?.courseName ?? 'Sesiune'}
                                                 </p>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400">{record.date}</p>
                                             </div>

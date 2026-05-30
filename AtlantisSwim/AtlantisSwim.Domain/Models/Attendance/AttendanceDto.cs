@@ -13,6 +13,7 @@ namespace AtlantisSwim.Domain.Models.Attendance
         public bool Confirmed { get; set; }
         public int? ConfirmedByUserId { get; set; }
         public DateTime? ConfirmedAt { get; set; }
+        public bool SubmittedByStudent { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 
@@ -23,6 +24,7 @@ namespace AtlantisSwim.Domain.Models.Attendance
         public DateTime Date { get; set; }
         public string Status { get; set; } = "Present";
         public int? MarkedByUserId { get; set; }
+        public bool SubmittedByStudent { get; set; } = false;
     }
 
     public class UpdateAttendanceDto

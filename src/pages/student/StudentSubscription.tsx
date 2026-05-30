@@ -1,20 +1,20 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockSubscriptions, subscriptionPlans } from '../../data/mockData';
+import { subscriptionService } from '../../services/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Link } from 'react-router-dom';
 import { CreditCard, Calendar, Award, TrendingUp } from 'lucide-react';
+import type { Subscription } from '../../types';
 
 export const StudentSubscription: React.FC = () => {
     const { user } = useAuth();
+    const [mySubscription, setMySubscription] = useState<Subscription | null>(null);
 
-    const mySubscription = useMemo(() => {
-        return mockSubscriptions.find(s => s.studentId === user?.id) ?? null;
+    useEffect(() => {
+        if (user) {
+            subscriptionService.getByStudent(user.id).then(sub => setMySubscription(sub ?? null));
+        }
     }, [user]);
-
-    const matchedPlan = useMemo(() => {
-        return mySubscription ? subscriptionPlans.find(p => p.id === mySubscription.planId) ?? null : null;
-    }, [mySubscription]);
 
     const sessionsRemaining = mySubscription ? mySubscription.sessionsTotal - mySubscription.sessionsUsed : 0;
     const sessionProgress = mySubscription ? (mySubscription.sessionsUsed / mySubscription.sessionsTotal) * 100 : 0;
@@ -22,34 +22,21 @@ export const StudentSubscription: React.FC = () => {
     const isExpired = mySubscription ? new Date(mySubscription.expiryDate) < new Date() : false;
     const status = isExpired ? 'Expired' : 'Active';
 
-    const categoryConfig: Record<string, { label: string; icon: string; color: string }> = {
-        standard: { label: 'Standard', icon: '◎', color: 'bg-host-cyan/20 text-host-cyan border-host-cyan/30' },
-        pro: { label: 'Pro', icon: '★', color: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-        individual: { label: 'Individual', icon: '✦', color: 'bg-purple-500/20 text-purple-400 border-purple-500/30' },
-        transport: { label: 'Transport', icon: '🚐', color: 'bg-green-500/20 text-green-400 border-green-500/30' },
-    };
-
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
             <PageHeader title="My Subscription" subtitle="Manage your subscription plan and track your sessions" />
 
             <div className="container mx-auto px-6 mt-10 relative z-20 max-w-4xl space-y-8">
-                {mySubscription && matchedPlan ? (
+                {mySubscription ? (
                     <div className="space-y-6">
                         {/* Main Subscription Card */}
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden">
                             <div className="p-8">
-                                {/* Status + Category Row */}
+                                {/* Status Row */}
                                 <div className="flex items-center justify-between mb-6">
-                                    {(() => {
-                                        const cat = categoryConfig[matchedPlan.category] ?? categoryConfig.standard;
-                                        return (
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border ${cat.color}`}>
-                                                <span>{cat.icon}</span>
-                                                <span>{cat.label}</span>
-                                            </span>
-                                        );
-                                    })()}
+                                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider border bg-host-cyan/20 text-host-cyan border-host-cyan/30">
+                                        ◎ Plan
+                                    </span>
                                     <span className={`inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-widest px-4 py-1.5 rounded-full shadow ${isExpired
                                         ? 'bg-red-500 text-white'
                                         : 'bg-emerald-500 text-white'
@@ -61,21 +48,16 @@ export const StudentSubscription: React.FC = () => {
 
                                 {/* Plan Name */}
                                 <h2 className="text-2xl font-extrabold text-gray-800 dark:text-white mb-2">
-                                    {matchedPlan.name}
+                                    {mySubscription.planId}
                                 </h2>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 flex items-center gap-2">
-                                    <span>◷ {matchedPlan.sessions} sessions</span>
-                                    <span className="text-gray-300 dark:text-gray-600">·</span>
-                                    <span>{matchedPlan.duration}</span>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                                    ◷ {mySubscription.sessionsTotal} sessions
                                 </p>
 
                                 {/* Price */}
                                 <div className="flex items-baseline gap-2 mb-8">
                                     <span className="text-3xl font-extrabold text-host-cyan">{mySubscription.amount}</span>
                                     <span className="text-sm text-gray-500 font-medium">MDL</span>
-                                    {matchedPlan.discountPrice && matchedPlan.discountPrice < matchedPlan.price && (
-                                        <span className="text-sm text-gray-400 line-through ml-2">{matchedPlan.price} MDL</span>
-                                    )}
                                 </div>
 
                                 {/* Sessions Progress */}

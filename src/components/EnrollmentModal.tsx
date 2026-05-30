@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal } from './Modal';
 import { Calendar } from './Calendar';
 import { CoachSelector } from './CoachSelector';
 import { Button } from './Button';
 import { CTAButton } from './CTAButton';
-import { mockCoaches } from '../data/mockData';
-import type { Course } from '../types';
+import { coachService, reservationService } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import type { Course, Coach } from '../types';
 import { CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -17,27 +18,53 @@ interface EnrollmentModalProps {
 
 export const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ course, isOpen, onClose }) => {
     const { t } = useTranslation();
+    const { user } = useAuth();
     const [step, setStep] = useState(1);
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedTime, setSelectedTime] = useState<string | null>(null);
     const [selectedCoachId, setSelectedCoachId] = useState<string | null>(null);
+    const [coaches, setCoaches] = useState<Coach[]>([]);
+    const [isSaving, setIsSaving] = useState(false);
+    const [bookingError, setBookingError] = useState<string | null>(null);
 
     const handleNext = () => setStep(s => s + 1);
     const handleBack = () => setStep(s => s - 1);
 
-    // Reset state when closed
-    React.useEffect(() => {
-        if (!isOpen) {
+    useEffect(() => {
+        if (isOpen) {
+            coachService.getAll().then(setCoaches);
+        } else {
             setStep(1);
             setSelectedDate(null);
             setSelectedTime(null);
             setSelectedCoachId(null);
+            setBookingError(null);
         }
     }, [isOpen]);
 
+    const handleConfirm = async () => {
+        if (!user || !course || !selectedDate || !selectedTime || !selectedCoachId) return;
+        setIsSaving(true);
+        setBookingError(null);
+        try {
+            await reservationService.create({
+                studentUserId: parseInt(user.id, 10),
+                coachUserId:   parseInt(selectedCoachId, 10),
+                courseId:      parseInt(course.id, 10),
+                date:          selectedDate.toISOString().split('T')[0],
+                time:          selectedTime,
+            });
+            onClose();
+        } catch {
+            setBookingError('Rezervarea nu a putut fi creată. Încearcă din nou.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
     if (!course) return null;
 
-    const selectedCoach = mockCoaches.find(c => c.id === selectedCoachId);
+    const selectedCoach = coaches.find(c => c.id === selectedCoachId);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title={t('enrollment_modal.enroll_in', { course: course.title })}>
@@ -59,7 +86,7 @@ export const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ course, isOpen
                 {step === 1 && (
                     <div className="animate-in slide-in-from-right-4 duration-300">
                         <div className="text-center mb-6">
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-white">{t('enrollment_modal.step_2_title')}</h3>
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-white">{t('enrollment_modal.step_1_title')}</h3>
                             <p className="text-sm text-gray-500">Select when you'd like to start your training.</p>
                         </div>
                         <Calendar
@@ -74,7 +101,7 @@ export const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ course, isOpen
                 {step === 2 && (
                     <div className="animate-in slide-in-from-right-4 duration-300">
                         <div className="text-center mb-6">
-                            <h3 className="text-lg font-bold text-gray-800 dark:text-white">{t('enrollment_modal.step_1_title')}</h3>
+                            <h3 className="text-lg font-bold text-gray-800 dark:text-white">{t('enrollment_modal.step_2_title')}</h3>
                             <p className="text-sm text-gray-500">Choose your preferred instructor for this course.</p>
                         </div>
                         <CoachSelector selectedCoachId={selectedCoachId} onSelect={setSelectedCoachId} />
@@ -108,6 +135,10 @@ export const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ course, isOpen
                                 </div>
                             </div>
                         </div>
+
+                        {bookingError && (
+                            <p className="mt-4 text-sm text-red-500 font-medium">{bookingError}</p>
+                        )}
                     </div>
                 )}
             </div>
@@ -129,8 +160,13 @@ export const EnrollmentModal: React.FC<EnrollmentModalProps> = ({ course, isOpen
                         {t('enrollment_modal.next')}
                     </CTAButton>
                 ) : (
-                    <CTAButton onClick={onClose} fullWidth={false} style={{ borderRadius: '9999px', background: 'linear-gradient(145deg, #22c55e 0%, #16a34a 100%)', minHeight: '44px' }}>
-                        {t('enrollment_modal.confirm_booking')}
+                    <CTAButton
+                        onClick={handleConfirm}
+                        fullWidth={false}
+                        disabled={isSaving}
+                        style={{ borderRadius: '9999px', background: 'linear-gradient(145deg, #22c55e 0%, #16a34a 100%)', minHeight: '44px' }}
+                    >
+                        {isSaving ? 'Se salvează...' : t('enrollment_modal.confirm_booking')}
                     </CTAButton>
                 )}
             </div>
