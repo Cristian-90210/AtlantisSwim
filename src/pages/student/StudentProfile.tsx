@@ -1,26 +1,28 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockStudents, mockCoaches, mockCourses } from '../../data/mockData';
+import { studentService, reservationService, coachService } from '../../services/api';
 import { PageHeader } from '../../components/PageHeader';
 import { User, Mail, Award, Waves, UserCheck } from 'lucide-react';
+import type { Student, Coach } from '../../types';
 
 export const StudentProfile: React.FC = () => {
     const { user } = useAuth();
+    const [studentData, setStudentData] = useState<Student | null>(null);
+    const [assignedCoach, setAssignedCoach] = useState<Coach | null>(null);
 
-    const studentData = useMemo(() => {
-        // Try to find the student in mockStudents by user id or name
-        const byId = mockStudents.find(s => s.id === user?.id);
-        if (byId) return byId;
-        // Fallback: match by name
-        return mockStudents.find(s => s.name === user?.name) ?? null;
+    useEffect(() => {
+        if (!user) return;
+        studentService.getById(user.id).then(s => setStudentData(s ?? null));
+        Promise.all([
+            reservationService.getByStudent(user.id),
+            coachService.getAll(),
+        ]).then(([bookings, coaches]) => {
+            const upcoming = bookings.find(b => b.status === 'upcoming');
+            if (upcoming) {
+                setAssignedCoach(coaches.find(c => c.id === upcoming.coachId) ?? null);
+            }
+        });
     }, [user]);
-
-    const assignedCoach = useMemo(() => {
-        if (!studentData?.enrolledCourseId) return null;
-        const course = mockCourses.find(c => c.id === studentData.enrolledCourseId);
-        if (!course) return null;
-        return mockCoaches.find(c => c.id === course.coachId) ?? null;
-    }, [studentData]);
 
     const level = studentData?.level ?? 'Beginner';
     const age = studentData?.age ?? '—';

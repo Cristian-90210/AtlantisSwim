@@ -395,10 +395,8 @@
         "quick_links": "Quick Links",
         "links": {
             "courses": "Courses",
-            "coaches": "Coaches",
-            "students": "Students",
-            "schedule": "Schedule",
-            "admin": "Admin"
+            "team": "Our Team",
+            "faq": "FAQ"
         },
         "contact_us": "Contact Us",
         "address": "123 Aqua Boulevard, Swimming District, Water City, 500210",

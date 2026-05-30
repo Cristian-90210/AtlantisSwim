@@ -395,10 +395,8 @@
         "quick_links": "Link-uri Rapide",
         "links": {
             "courses": "Cursuri",
-            "coaches": "Antrenori",
-            "students": "Elevi",
-            "schedule": "Program",
-            "admin": "Admin"
+            "team": "Echipa Noastră",
+            "faq": "FAQ"
         },
         "contact_us": "Contactează-ne",
         "address": "Bulevardul Aqua 123, Cartierul Înot, Orașul Apei, 500210",

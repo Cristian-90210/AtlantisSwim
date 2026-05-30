@@ -1,13 +1,12 @@
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { mockBookings, mockCoaches, mockCourses, mockSubscriptions, subscriptionPlans } from '../data/mockData';
 import { Calendar, Clock, User, ArrowRight, Trophy, CreditCard, Award, Plus, GraduationCap, Users, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { PageHeader } from '../components/PageHeader';
 import { useTranslation } from 'react-i18next';
-import type { SwimmingResult } from '../types';
-import { resultsService } from '../services/api';
+import type { SwimmingResult, Booking, Subscription } from '../types';
+import { resultsService, reservationService, subscriptionService } from '../services/api';
 
 export const StudentDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -15,24 +14,17 @@ export const StudentDashboard: React.FC = () => {
     const navigate = useNavigate();
 
     const [results, setResults] = useState<SwimmingResult[]>([]);
+    const [myBookings, setMyBookings] = useState<Booking[]>([]);
+    const [mySubscription, setMySubscription] = useState<Subscription | null>(null);
 
     useEffect(() => {
-        if (user) {
-            resultsService.getByStudent(user.id).then(setResults);
-        }
-    }, [user]);
-
-    const myBookings = useMemo(() => {
-        return mockBookings.filter(b => b.studentId === user?.id).map(b => {
-            const course = mockCourses.find(c => c.id === b.courseId);
-            const coach = mockCoaches.find(c => c.id === b.coachId);
-            return { ...b, course, coach };
-        });
+        if (!user) return;
+        resultsService.getByStudent(user.id).then(setResults);
+        reservationService.getByStudent(user.id).then(setMyBookings);
+        subscriptionService.getByStudent(user.id).then(sub => setMySubscription(sub ?? null));
     }, [user]);
 
     const upcoming = myBookings.filter(b => b.status === 'upcoming');
-    const mySubscription = mockSubscriptions.find(s => s.studentId === user?.id);
-    const matchedPlan = mySubscription ? subscriptionPlans.find(p => p.id === mySubscription.planId) : null;
     const sessionsRemaining = mySubscription ? mySubscription.sessionsTotal - mySubscription.sessionsUsed : 0;
     const sessionProgress = mySubscription ? (mySubscription.sessionsUsed / mySubscription.sessionsTotal) * 100 : 0;
 
@@ -113,7 +105,7 @@ export const StudentDashboard: React.FC = () => {
                                                 <div>
                                                     <div className="flex items-center gap-2 mb-1">
                                                         <h4 className="font-extrabold text-gray-900 dark:text-white group-hover:text-host-cyan transition-colors">
-                                                            {binding.course ? t(`courses.${binding.course.id}.title`, { defaultValue: binding.course.title }) : 'Sesiune Înot'}
+                                                            {binding.courseName ?? 'Sesiune Înot'}
                                                         </h4>
                                                         <span className={clsx(
                                                             "px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-widest border",
@@ -123,7 +115,7 @@ export const StudentDashboard: React.FC = () => {
                                                         </span>
                                                     </div>
                                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
-                                                        <span className="flex items-center font-medium"><User size={14} className="mr-1.5 opacity-50" /> {binding.coach?.name ?? 'Antrenor'}</span>
+                                                        <span className="flex items-center font-medium"><User size={14} className="mr-1.5 opacity-50" /> {binding.coachName ?? 'Antrenor'}</span>
                                                         <span className="flex items-center font-medium"><Calendar size={14} className="mr-1.5 opacity-50" /> {binding.date}</span>
                                                         <span className="flex items-center font-bold text-gray-900 dark:text-gray-300"><Clock size={14} className="mr-1.5 text-host-cyan opacity-80" /> {binding.time}</span>
                                                     </div>
@@ -209,29 +201,15 @@ export const StudentDashboard: React.FC = () => {
                                 {/* Decorative Glow */}
                                 <div className="absolute top-0 right-0 w-32 h-32 bg-host-cyan/5 rounded-full blur-3xl -mr-10 -mt-10 group-hover:bg-host-cyan/10 transition-all duration-500 pointer-events-none"/>
                                 
-                                {mySubscription && matchedPlan ? (
+                                {mySubscription ? (
                                     <div className="relative z-10 space-y-5">
                                         <div className="flex justify-between items-start">
                                             <div>
-                                                <div className="mb-2">
-                                                    {(() => {
-                                                        const categoryConfig: Record<string, { label: string; icon: string; color: string }> = {
-                                                            standard: { label: t('landing.subscriptions.standard'), icon: '◎', color: 'bg-host-cyan/10 text-host-cyan border-cyan-200 dark:border-cyan-500/20' },
-                                                            pro: { label: t('landing.subscriptions.pro'), icon: '★', color: 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-500 border-yellow-200 dark:border-yellow-500/20' },
-                                                            individual: { label: t('landing.subscriptions.individual'), icon: '✦', color: 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-200 dark:border-purple-500/20' },
-                                                            transport: { label: t('landing.subscriptions.transport'), icon: '🚐', color: 'bg-green-500/10 text-emerald-600 dark:text-emerald-400 border-green-200 dark:border-green-500/20' },
-                                                        };
-                                                        const cat = categoryConfig[matchedPlan.category] || categoryConfig.standard;
-                                                        return (
-                                                            <span className={`inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-widest border ${cat.color}`}>
-                                                                <span>{cat.icon}</span>
-                                                                <span>{cat.label}</span>
-                                                            </span>
-                                                        );
-                                                    })()}
-                                                </div>
+                                                <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded-md text-[9px] font-extrabold uppercase tracking-widest border bg-host-cyan/10 text-host-cyan border-cyan-200 dark:border-cyan-500/20 mb-2">
+                                                    <span>◎</span><span>Plan</span>
+                                                </span>
                                                 <h4 className="text-lg font-extrabold text-gray-900 dark:text-white">
-                                                    {t(`landing.plans.${matchedPlan.id}.name`)}
+                                                    {mySubscription.planId}
                                                 </h4>
                                             </div>
                                             <span className="inline-flex items-center bg-gray-900 dark:bg-white text-white dark:text-gray-900 text-[9px] font-extrabold px-2.5 py-1 rounded-lg shadow-sm uppercase tracking-widest shrink-0">
@@ -256,7 +234,7 @@ export const StudentDashboard: React.FC = () => {
                                                 Valabil până pe <span className="text-gray-800 dark:text-gray-300 ml-1">{mySubscription.expiryDate}</span>
                                             </p>
                                         </div>
-                                        
+
                                         <button className="w-full py-2 px-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-xs font-bold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm focus:ring-2 focus:ring-gray-200 dark:focus:ring-gray-700">
                                             Gestionare Abonament
                                         </button>

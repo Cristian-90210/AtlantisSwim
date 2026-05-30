@@ -1,45 +1,6 @@
 import React from 'react';
 import { PageHeader } from '../components/PageHeader';
-
-interface FAQItem {
-    question: string;
-    answer: string;
-}
-
-const faqItems: FAQItem[] = [
-    {
-        question: 'Unde au loc antrenamentele?',
-        answer: 'Antrenamentele noastre au loc în incinta zonei Aquacenter din cadrul Chișinău arena.',
-    },
-    {
-        question: 'Cât durează un antrenament?',
-        answer: 'Un antrenament de grup sau individual durează în medie 45 de minute.',
-    },
-    {
-        question: 'De la ce vârstă poate începe un copil să înoate?',
-        answer: 'Copiii pot începe inițierea în înot de la 4 ani, într-un cadru sigur și adaptat nevoilor lor.',
-    },
-    {
-        question: 'În cât timp se învață un copil a înota?',
-        answer: 'Fiecare copil are ritmul său de progres. În general, bazele înotului se deprind după 2–3 luni de antrenamente regulate.',
-    },
-    {
-        question: 'Câți copii sunt în grupe?',
-        answer: 'Grupele sunt formate din 12–16 copii, pentru ca fiecare să primească atenția necesară din partea antrenorului.',
-    },
-    {
-        question: 'Cum pot înscrie copilul la antrenamente?',
-        answer: 'Înscrierea se face telefonic sau online, prin completarea formularului de pe site.',
-    },
-    {
-        question: 'Trebuie adus echipament special?',
-        answer: 'Da, fiecare sportiv are nevoie de costum de baie, cască, ochelari, prosop și papuci. Restul echipamentului este asigurat de club.',
-    },
-    {
-        question: 'Se pot recupera antrenamentele lipsă?',
-        answer: 'Antrenamentele de grup se pot recupera, doar dacă sunt pe motiv de boală și cu programare prealabilă. Recuperarea e valabilă doar pe perioada abonamentului activ.\n\nAntrenamentele anulate cu o zi înainte pot fi reprogramate.\n\nAntrenamentele anulate în ziua programării nu se recuperează.',
-    },
-];
+import { faqItems } from '../data/faqItems';
 
 export const FAQPage: React.FC = () => {
     return (

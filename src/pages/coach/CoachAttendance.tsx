@@ -1,46 +1,59 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockBookings, mockStudents, mockCourses } from '../../data/mockData';
 import { PageHeader } from '../../components/PageHeader';
 import { CheckCircle, XCircle, RotateCcw, User, Clock } from 'lucide-react';
 import { clsx } from 'clsx';
-import { attendanceService } from '../../services/api';
-import type { AttendanceRecord } from '../../types';
+import { attendanceService, reservationService, studentService, courseService } from '../../services/api';
+import type { AttendanceRecord, Booking, Student, Course } from '../../types';
 
 export const CoachAttendance: React.FC = () => {
     const { user } = useAuth();
-    const coachId = user?.id ?? 'c1';
+    const coachId = user?.id ?? '';
 
     const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+    const [bookings, setBookings]     = useState<Booking[]>([]);
+    const [students, setStudents]     = useState<Student[]>([]);
+    const [courses, setCourses]       = useState<Course[]>([]);
 
     useEffect(() => {
+        if (!coachId) return;
         attendanceService.getAll().then(setAttendance);
-    }, []);
-
-    const schedule = useMemo(() => {
-        return mockBookings
-            .filter(b => b.coachId === coachId && b.status === 'upcoming')
-            .map(b => {
-                const student = mockStudents.find(s => s.id === b.studentId) || { name: 'Unknown', level: 'N/A' };
-                const course = mockCourses.find(c => c.id === b.courseId);
-                return { ...b, student, course };
-            })
-            .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+        Promise.all([
+            reservationService.getByCoach(coachId),
+            studentService.getAll(),
+            courseService.getAll(),
+        ]).then(([bks, sts, crs]) => {
+            setBookings(bks);
+            setStudents(sts);
+            setCourses(crs);
+        });
     }, [coachId]);
 
-    const handleMark = async (studentId: string, bookingId: string, date: string, status: 'present' | 'absent' | 'recovery') => {
+    const schedule = useMemo(() =>
+        bookings
+            .filter(b => b.status === 'upcoming')
+            .map(b => ({
+                ...b,
+                student: students.find(s => s.id === b.studentId) ?? { name: 'Unknown', level: 'N/A' as const },
+                course:  courses.find(c => c.id === b.courseId),
+            }))
+            .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime()),
+    [bookings, students, courses]);
+
+    const handleMark = async (studentId: string, booking: Booking, status: 'present' | 'absent' | 'recovery') => {
         const record = await attendanceService.mark({
-            bookingId,
+            bookingId:  booking.id,
             studentId,
-            date,
+            date:       booking.date,
             status,
-            markedBy: coachId,
+            markedBy:   coachId,
+            courseId:   parseInt(booking.courseId, 10) || 0,
         });
         setAttendance(prev => [...prev, record]);
     };
 
-    const presentCount = attendance.filter(a => a.status === 'present').length;
-    const absentCount = attendance.filter(a => a.status === 'absent').length;
+    const presentCount  = attendance.filter(a => a.status === 'present').length;
+    const absentCount   = attendance.filter(a => a.status === 'absent').length;
     const recoveryCount = attendance.filter(a => a.status === 'recovery').length;
 
     return (
@@ -89,7 +102,9 @@ export const CoachAttendance: React.FC = () => {
                         {schedule.length > 0 ? (
                             <div className="divide-y divide-gray-100 dark:divide-gray-700">
                                 {schedule.map(session => {
-                                    const existing = attendance.find(a => a.bookingId === session.id && a.studentId === session.studentId);
+                                    const existing = attendance.find(
+                                        a => a.date === session.date && a.studentId === session.studentId
+                                    );
                                     return (
                                         <div key={session.id} className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                             <div className="flex items-center gap-4">
@@ -106,29 +121,29 @@ export const CoachAttendance: React.FC = () => {
                                             </div>
                                             {existing ? (
                                                 <span className={clsx(
-                                                    "px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide",
-                                                    existing.status === 'present' ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" :
-                                                        existing.status === 'absent' ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
-                                                            "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                                                    'px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide',
+                                                    existing.status === 'present'  ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                                                    existing.status === 'absent'   ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                                                                                     'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                                                 )}>
                                                     {existing.status}
                                                 </span>
                                             ) : (
                                                 <div className="flex gap-2 flex-wrap">
                                                     <button
-                                                        onClick={() => handleMark(session.studentId, session.id, session.date, 'present')}
+                                                        onClick={() => handleMark(session.studentId, session, 'present')}
                                                         className="px-3 py-1.5 rounded-full text-xs font-bold bg-green-100 text-green-700 hover:bg-green-200 transition-colors dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50"
                                                     >
                                                         <CheckCircle size={14} className="inline mr-1" />Present
                                                     </button>
                                                     <button
-                                                        onClick={() => handleMark(session.studentId, session.id, session.date, 'absent')}
+                                                        onClick={() => handleMark(session.studentId, session, 'absent')}
                                                         className="px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 transition-colors dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
                                                     >
                                                         <XCircle size={14} className="inline mr-1" />Absent
                                                     </button>
                                                     <button
-                                                        onClick={() => handleMark(session.studentId, session.id, session.date, 'recovery')}
+                                                        onClick={() => handleMark(session.studentId, session, 'recovery')}
                                                         className="px-3 py-1.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 hover:bg-yellow-200 transition-colors dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50"
                                                     >
                                                         <RotateCcw size={14} className="inline mr-1" />Recovery
@@ -155,16 +170,16 @@ export const CoachAttendance: React.FC = () => {
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden">
                             <div className="divide-y divide-gray-100 dark:divide-gray-700">
                                 {attendance.map(a => {
-                                    const student = mockStudents.find(s => s.id === a.studentId);
+                                    const student = students.find(s => s.id === a.studentId);
                                     return (
                                         <div key={a.id} className="p-5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                             <div className="flex items-center gap-4">
-                                                <div className={clsx("p-2 rounded-full",
-                                                    a.status === 'present' ? "bg-green-100 text-green-600" :
-                                                        a.status === 'absent' ? "bg-red-100 text-red-600" : "bg-yellow-100 text-yellow-600"
+                                                <div className={clsx('p-2 rounded-full',
+                                                    a.status === 'present'  ? 'bg-green-100 text-green-600' :
+                                                    a.status === 'absent'   ? 'bg-red-100 text-red-600'   : 'bg-yellow-100 text-yellow-600'
                                                 )}>
                                                     {a.status === 'present' ? <CheckCircle size={18} /> :
-                                                        a.status === 'absent' ? <XCircle size={18} /> : <RotateCcw size={18} />}
+                                                     a.status === 'absent'  ? <XCircle size={18} />     : <RotateCcw size={18} />}
                                                 </div>
                                                 <div>
                                                     <div className="font-bold text-gray-700 dark:text-gray-300">{student?.name ?? a.studentId}</div>
@@ -172,9 +187,9 @@ export const CoachAttendance: React.FC = () => {
                                                 </div>
                                             </div>
                                             <span className={clsx(
-                                                "px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide",
-                                                a.status === 'present' ? "bg-green-100 text-green-700" :
-                                                    a.status === 'absent' ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
+                                                'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide',
+                                                a.status === 'present' ? 'bg-green-100 text-green-700' :
+                                                a.status === 'absent'  ? 'bg-red-100 text-red-700'    : 'bg-yellow-100 text-yellow-700'
                                             )}>
                                                 {a.status}
                                             </span>

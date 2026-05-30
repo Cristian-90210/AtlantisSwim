@@ -1,40 +1,43 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockBookings, mockStudents, mockCourses } from '../../data/mockData';
 import { PageHeader } from '../../components/PageHeader';
 import { Calendar, Clock, User, Users, MapPin } from 'lucide-react';
 import { clsx } from 'clsx';
-import { scheduleService } from '../../services/api';
-import type { CoachScheduleSlot } from '../../types';
+import { scheduleService, reservationService, studentService, courseService } from '../../services/api';
+import type { CoachScheduleSlot, Booking, Student, Course } from '../../types';
 
 export const CoachTrainingSchedule: React.FC = () => {
     const { user } = useAuth();
-    const coachId = user?.id ?? 'c1';
+    const coachId = user?.id ?? '';
 
     const [scheduleSlots, setScheduleSlots] = useState<CoachScheduleSlot[]>([]);
+    const [sessions, setSessions]           = useState<(Booking & { student: Pick<Student, 'name' | 'level'>; course?: Course })[]>([]);
 
     useEffect(() => {
+        if (!coachId) return;
         scheduleService.getByCoach(coachId).then(setScheduleSlots);
+
+        Promise.all([
+            reservationService.getByCoach(coachId),
+            studentService.getAll(),
+            courseService.getAll(),
+        ]).then(([bookings, students, courses]) => {
+            const enriched = bookings
+                .map(b => ({
+                    ...b,
+                    student: students.find(s => s.id === b.studentId) ?? { name: 'Unknown', level: 'N/A' as const },
+                    course:  courses.find(c => c.id === b.courseId),
+                }))
+                .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
+            setSessions(enriched as any);
+        });
     }, [coachId]);
 
-    const sessions = useMemo(() => {
-        return mockBookings
-            .filter(b => b.coachId === coachId)
-            .map(b => {
-                const student = mockStudents.find(s => s.id === b.studentId) || { name: 'Unknown', level: 'N/A' };
-                const course = mockCourses.find(c => c.id === b.courseId);
-                return { ...b, student, course };
-            })
-            .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime());
-    }, [coachId]);
+    const upcoming   = sessions.filter(s => s.status === 'upcoming');
+    const completed  = sessions.filter(s => s.status === 'completed');
 
-    const upcoming = sessions.filter(s => s.status === 'upcoming');
-    const completed = sessions.filter(s => s.status === 'completed');
-
-    const formatDate = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    };
+    const formatDate = (dateStr: string) =>
+        new Date(dateStr).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">
@@ -102,7 +105,7 @@ export const CoachTrainingSchedule: React.FC = () => {
                                                         <div className="flex items-center gap-3">
                                                             <div className="w-20 bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                                                                 <div
-                                                                    className={clsx("h-2 rounded-full", pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-yellow-500" : "bg-green-500")}
+                                                                    className={clsx('h-2 rounded-full', pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-yellow-500' : 'bg-green-500')}
                                                                     style={{ width: `${pct}%` }}
                                                                 />
                                                             </div>

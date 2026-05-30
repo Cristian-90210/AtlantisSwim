@@ -3,6 +3,7 @@ using AtlantisSwim.Api.Hubs;
 using AtlantisSwim.Api.Services;
 using AtlantisSwim.BusinessLayer.Interfaces;
 using AtlantisSwim.BusinessLayer.Structure;
+// Phase-10 services are in the same namespaces — no extra using needed
 using AtlantisSwim.DataAccess;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -31,13 +32,23 @@ builder.Services.AddScoped<IBookingService,       BookingService>();
 builder.Services.AddScoped<ISubscriptionService,  SubscriptionService>();
 builder.Services.AddScoped<IPaymentService,       PaymentService>();
 builder.Services.AddScoped<IScheduleService,      ScheduleService>();
-builder.Services.AddScoped<IAnnouncementService,  AnnouncementService>();
+builder.Services.AddScoped<IAnnouncementService,    AnnouncementService>();
+builder.Services.AddScoped<IStudentNoteService,     StudentNoteService>();
+builder.Services.AddScoped<IProgressService,        ProgressService>();
+builder.Services.AddScoped<IRecoveryCreditService,  RecoveryCreditService>();
+builder.Services.AddScoped<IRecoveryRequestService, RecoveryRequestService>();
+builder.Services.AddScoped<IHealthFlagService,      HealthFlagService>();
+builder.Services.AddScoped<ISpecialOfferService,    SpecialOfferService>();
 
 // ── Startup services ──────────────────────────────────────────────────────────
 builder.Services.AddHostedService<PasswordMigrationService>();
 
 // ── JWT Authentication ────────────────────────────────────────────────────────
-var jwtKey      = builder.Configuration["Jwt:Key"]      ?? "AtlantisSwim-SuperSecret-JWT-Key-2024!@#$%^&*()";
+var jwtKey = builder.Configuration["Jwt:Key"]
+    ?? throw new InvalidOperationException(
+        "Jwt:Key is missing from configuration. " +
+        "Set it in appsettings.json or via the Jwt__Key environment variable.");
+
 var jwtIssuer   = builder.Configuration["Jwt:Issuer"]   ?? "AtlantisSwim.Api";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AtlantisSwim.Frontend";
 
@@ -155,8 +166,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
+app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

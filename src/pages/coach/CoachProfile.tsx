@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockCoaches } from '../../data/mockData';
 import { PageHeader } from '../../components/PageHeader';
 import { Mail, Award, Briefcase, Clock, User } from 'lucide-react';
+import { coachService } from '../../services/api';
+import type { Coach } from '../../types';
 
 export const CoachProfile: React.FC = () => {
     const { user } = useAuth();
+    const [coachData, setCoachData] = useState<Coach | null>(null);
 
-    const coachData = mockCoaches.find(c => c.id === user?.id) ?? null;
+    useEffect(() => {
+        coachService.getAll().then(coaches => {
+            const found = coaches.find(c => c.email === user?.email) ?? coaches.find(c => c.id === user?.id) ?? null;
+            setCoachData(found);
+        });
+    }, [user]);
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20">

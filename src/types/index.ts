@@ -36,8 +36,11 @@ export function getRoleKey(role: UserRole): 'student' | 'coach' | 'admin' {
 export interface Booking {
     id: string;
     studentId: string;
+    studentName?: string;
     coachId: string;
+    coachName?: string;
     courseId: string;
+    courseName?: string;
     date: string; // ISO Date YYYY-MM-DD
     time: string; // HH:mm
     status: 'upcoming' | 'completed' | 'cancelled';
@@ -100,6 +103,7 @@ export interface Coach {
     name: string;
     specialization: string;
     experienceYears: number;
+    description?: string;
     email: string;
     avatar?: string;
     status: 'Active' | 'Inactive';

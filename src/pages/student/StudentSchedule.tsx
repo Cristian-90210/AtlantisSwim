@@ -1,36 +1,53 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockBookings, mockCoaches, mockCourses } from '../../data/mockData';
+import { reservationService, coachService, courseService } from '../../services/api';
 import { PageHeader } from '../../components/PageHeader';
 import { Calendar, Clock, User, MapPin } from 'lucide-react';
+import type { Booking, Coach, Course } from '../../types';
 
 export const StudentSchedule: React.FC = () => {
     const { user } = useAuth();
+    const [bookings, setBookings] = useState<Booking[]>([]);
+    const [coaches, setCoaches] = useState<Coach[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
+
+    useEffect(() => {
+        if (!user) return;
+        Promise.all([
+            reservationService.getByStudent(user.id),
+            coachService.getAll(),
+            courseService.getAll(),
+        ]).then(([bks, chs, crs]) => {
+            setBookings(bks);
+            setCoaches(chs);
+            setCourses(crs);
+        });
+    }, [user]);
 
     const upcomingSessions = useMemo(() => {
-        return mockBookings
-            .filter(b => b.studentId === user?.id && b.status === 'upcoming')
-            .map(b => {
-                const course = mockCourses.find(c => c.id === b.courseId);
-                const coach = mockCoaches.find(c => c.id === b.coachId);
-                return { ...b, course, coach };
-            })
+        return bookings
+            .filter(b => b.status === 'upcoming')
+            .map(b => ({
+                ...b,
+                course: courses.find(c => c.id === b.courseId),
+                coach: coaches.find(c => c.id === b.coachId),
+            }))
             .sort((a, b) => {
                 const dateA = new Date(`${a.date}T${a.time}`);
                 const dateB = new Date(`${b.date}T${b.time}`);
                 return dateA.getTime() - dateB.getTime();
             });
-    }, [user]);
+    }, [bookings, coaches, courses]);
 
     const completedSessions = useMemo(() => {
-        return mockBookings
-            .filter(b => b.studentId === user?.id && b.status === 'completed')
-            .map(b => {
-                const course = mockCourses.find(c => c.id === b.courseId);
-                const coach = mockCoaches.find(c => c.id === b.coachId);
-                return { ...b, course, coach };
-            });
-    }, [user]);
+        return bookings
+            .filter(b => b.status === 'completed')
+            .map(b => ({
+                ...b,
+                course: courses.find(c => c.id === b.courseId),
+                coach: coaches.find(c => c.id === b.coachId),
+            }));
+    }, [bookings, coaches, courses]);
 
     const formatDate = (dateStr: string) => {
         const date = new Date(dateStr);

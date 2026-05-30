@@ -1,20 +1,21 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { mockStudents } from '../../data/mockData';
 import { PageHeader } from '../../components/PageHeader';
 import { Trophy, TrendingUp, Activity } from 'lucide-react';
 import { clsx } from 'clsx';
-import { resultsService } from '../../services/api';
-import type { SwimmingResult } from '../../types';
+import { resultsService, studentService } from '../../services/api';
+import type { SwimmingResult, Student } from '../../types';
 
 export const CoachStudentResults: React.FC = () => {
     const { user } = useAuth();
-    const coachId = user?.id ?? 'c1';
+    const coachId = user?.id ?? '';
 
     const [allResults, setAllResults] = useState<SwimmingResult[]>([]);
+    const [students, setStudents]     = useState<Student[]>([]);
 
     useEffect(() => {
         resultsService.getAll().then(r => setAllResults(r.filter(res => res.coachId === coachId)));
+        studentService.getAll().then(setStudents);
     }, [coachId]);
 
     const parseTime = (timeStr: string): number => {
@@ -82,7 +83,7 @@ export const CoachStudentResults: React.FC = () => {
 
                 {/* Results by Student */}
                 {Object.entries(groupedByStudent).map(([studentId, results]) => {
-                    const student = mockStudents.find(s => s.id === studentId);
+                    const student = students.find(s => s.id === studentId);
                     return (
                         <div key={studentId}>
                             <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-3">

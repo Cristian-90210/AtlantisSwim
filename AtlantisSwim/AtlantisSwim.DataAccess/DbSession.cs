@@ -3,7 +3,11 @@ using AtlantisSwim.Domain.Entities.Attendance;
 using AtlantisSwim.Domain.Entities.Booking;
 using AtlantisSwim.Domain.Entities.Chat;
 using AtlantisSwim.Domain.Entities.Course;
+using AtlantisSwim.Domain.Entities.Health;
+using AtlantisSwim.Domain.Entities.Notes;
+using AtlantisSwim.Domain.Entities.Offers;
 using AtlantisSwim.Domain.Entities.Payment;
+using AtlantisSwim.Domain.Entities.Progress;
 using AtlantisSwim.Domain.Entities.Recovery;
 using AtlantisSwim.Domain.Entities.Results;
 using AtlantisSwim.Domain.Entities.Schedule;
@@ -45,6 +49,13 @@ namespace AtlantisSwim.DataAccess
         public DbSet<CoachScheduleSlot> ScheduleSlots { get; set; }
         public DbSet<AnnouncementData> Announcements { get; set; }
         public DbSet<RecoveryCredit> RecoveryCredits { get; set; }
+
+        // ── Phase 10 modules ─────────────────────────────────────────────────────
+        public DbSet<StudentNote>       StudentNotes       { get; set; }
+        public DbSet<ProgressSnapshot>  ProgressSnapshots  { get; set; }
+        public DbSet<RecoveryRequest>   RecoveryRequests   { get; set; }
+        public DbSet<StudentHealthFlag> StudentHealthFlags { get; set; }
+        public DbSet<SpecialOffer>      SpecialOffers      { get; set; }
 
         // ── Configuration ────────────────────────────────────────────────────────
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

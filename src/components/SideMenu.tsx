@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
     Home,
@@ -38,6 +38,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
     const { logout, user } = useAuth();
     const { totalItems } = useCart();
     const { theme, toggleTheme } = useTheme();
+    const location = useLocation();
     const navigate = useNavigate();
     const languages = ['ro', 'en', 'ru'] as const;
 
@@ -76,7 +77,7 @@ export const SideMenu: React.FC<SideMenuProps> = ({ isOpen, onClose }) => {
             { to: '/', label: t('header.home'), icon: Home },
             { to: '/courses', label: t('header.courses'), icon: BookOpen },
             { to: '/coaches', label: t('header.our_team'), icon: User },
-            { to: '/faq', label: t('header.faq'), icon: BookOpen },
+            { to: '#faq', label: t('header.faq'), icon: BookOpen },
         ];
 
     const actionButtonClassName =

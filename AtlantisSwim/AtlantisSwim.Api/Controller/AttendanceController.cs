@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AtlantisSwim.BusinessLayer.Interfaces;
 using AtlantisSwim.Domain.Models.Attendance;
 using Microsoft.AspNetCore.Authorization;
@@ -30,9 +31,8 @@ namespace AtlantisSwim.Api.Controller
             return Ok(await _service.GetAllAsync());
         }
 
-        // POST /api/attendance — Coach or Admin marks attendance
+        // POST /api/attendance — any authenticated user (students self-report, coaches/admins mark others)
         [HttpPost]
-        [Authorize(Roles = "Coach,Admin")]
         public async Task<IActionResult> Create([FromBody] CreateAttendanceDto dto)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -45,6 +45,14 @@ namespace AtlantisSwim.Api.Controller
         [Authorize(Roles = "Coach,Admin")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateAttendanceDto dto)
         {
+            // When confirming, ensure confirmedByUserId matches the authenticated caller
+            if (dto.Confirmed == true && dto.ConfirmedByUserId.HasValue)
+            {
+                var callerIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (int.TryParse(callerIdStr, out int callerId) && callerId != dto.ConfirmedByUserId.Value)
+                    return Forbid();
+            }
+
             var result = await _service.UpdateAsync(id, dto);
             if (result == null) return NotFound();
             return Ok(result);

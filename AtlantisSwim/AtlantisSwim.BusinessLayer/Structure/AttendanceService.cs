@@ -40,20 +40,22 @@ namespace AtlantisSwim.BusinessLayer.Structure
 
             if (existing != null)
             {
-                existing.Status = dto.Status;
-                existing.MarkedByUserId = dto.MarkedByUserId;
+                existing.Status             = dto.Status;
+                existing.MarkedByUserId     = dto.MarkedByUserId;
+                existing.SubmittedByStudent = dto.SubmittedByStudent;
                 await _db.SaveChangesAsync();
                 return await ToDto(existing);
             }
 
             var record = new AttendanceRecord
             {
-                UserId          = dto.UserId,
-                CourseId        = dto.CourseId,
-                Date            = dto.Date.Date,
-                Status          = dto.Status,
-                MarkedByUserId  = dto.MarkedByUserId,
-                CreatedAt       = DateTime.UtcNow
+                UserId              = dto.UserId,
+                CourseId            = dto.CourseId,
+                Date                = dto.Date.Date,
+                Status              = dto.Status,
+                MarkedByUserId      = dto.MarkedByUserId,
+                SubmittedByStudent  = dto.SubmittedByStudent,
+                CreatedAt           = DateTime.UtcNow
             };
 
             _db.AttendanceRecords.Add(record);
@@ -111,6 +113,7 @@ namespace AtlantisSwim.BusinessLayer.Structure
                        Confirmed           = a.Confirmed,
                        ConfirmedByUserId   = a.ConfirmedByUserId,
                        ConfirmedAt         = a.ConfirmedAt,
+                       SubmittedByStudent  = a.SubmittedByStudent,
                        CreatedAt           = a.CreatedAt
                    };
         }
@@ -132,6 +135,7 @@ namespace AtlantisSwim.BusinessLayer.Structure
                 Confirmed           = a.Confirmed,
                 ConfirmedByUserId   = a.ConfirmedByUserId,
                 ConfirmedAt         = a.ConfirmedAt,
+                SubmittedByStudent  = a.SubmittedByStudent,
                 CreatedAt           = a.CreatedAt
             };
         }

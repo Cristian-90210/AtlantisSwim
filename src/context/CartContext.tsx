@@ -6,6 +6,7 @@ export interface CartItem {
     price: number;
     discountPrice?: number;
     quantity: number;
+    sessionsTotal?: number;  // number of swimming sessions in the subscription plan
 }
 
 interface CartContextType {

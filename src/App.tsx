@@ -193,6 +193,7 @@ function App() {
                     <Route path="courses/:id" element={<Navigate to="/courses" replace />} />
                     <Route path="server-status" element={<ServerStatus />} />
                     <Route path="coaches" element={<Coaches />} />
+                    <Route path="team" element={<Navigate to="/coaches" replace />} />
                     <Route path="faq" element={<FAQPage />} />
                     <Route path="cart" element={<CartPage />} />
                     <Route path="checkout" element={<Checkout />} />
