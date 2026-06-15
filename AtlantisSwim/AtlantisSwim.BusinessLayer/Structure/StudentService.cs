@@ -41,6 +41,7 @@ namespace AtlantisSwim.BusinessLayer.Structure
                 SwimmingLevel = dto.SwimmingLevel,
                 IsActive  = true,
                 EnrolledOn = DateTime.UtcNow
+                
             };
 
             _db.Students.Add(student);
