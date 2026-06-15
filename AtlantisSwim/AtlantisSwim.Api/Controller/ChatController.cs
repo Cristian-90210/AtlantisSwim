@@ -40,7 +40,44 @@ namespace AtlantisSwim.Api.Controller
                 .Select(u => new { u.Id, u.FirstName, u.LastName, role = (int)u.Role })
                 .ToListAsync();
 
-            return Ok(users);
+            var ids = users.Select(u => u.Id).ToList();
+
+            // Pull every message exchanged between me and these users in one round-trip,
+            // so we can compute the last-message time + unread count per conversation.
+            var related = await _db.ChatMessages
+                .Where(m => (m.SenderId == myId && ids.Contains(m.ReceiverId)) ||
+                            (m.ReceiverId == myId && ids.Contains(m.SenderId)))
+                .ToListAsync();
+
+            var result = users
+                .Select(u =>
+                {
+                    var convo = related
+                        .Where(m => m.SenderId == u.Id || m.ReceiverId == u.Id)
+                        .OrderBy(m => m.SentAt)
+                        .ToList();
+                    var last = convo.LastOrDefault();
+                    return new
+                    {
+                        u.Id,
+                        u.FirstName,
+                        u.LastName,
+                        u.role,
+                        lastMessageAt      = last?.SentAt,
+                        lastMessageContent = last == null ? null : (last.IsDeleted ? "Mesaj șters" : last.Content),
+                        unreadCount        = convo.Count(m => m.SenderId == u.Id &&
+                                                              m.ReceiverId == myId && !m.IsRead)
+                    };
+                })
+                // Most-recently-active conversations first; contacts with no messages yet
+                // fall to the bottom, ordered alphabetically.
+                .OrderByDescending(x => x.lastMessageAt.HasValue)
+                .ThenByDescending(x => x.lastMessageAt)
+                .ThenBy(x => x.FirstName)
+                .ThenBy(x => x.LastName)
+                .ToList();
+
+            return Ok(result);
         }
 
         // GET /api/chat/history/{otherUserId} — conversation history + marks incoming as read
@@ -62,7 +99,10 @@ namespace AtlantisSwim.Api.Controller
                     m.ReceiverId,
                     m.Content,
                     m.SentAt,
-                    m.IsRead
+                    m.IsRead,
+                    m.IsEdited,
+                    m.EditedAt,
+                    m.IsDeleted
                 })
                 .ToListAsync();
 

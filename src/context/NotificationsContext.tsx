@@ -2,16 +2,7 @@
 import { getRoleKey } from '../types';
 import type { AppNotification } from '../types';
 import { useAuth } from './AuthContext';
-
-// ── Notificări simulate "în timp real" ──────────────────────────────────────
-const liveNotificationPool: Omit<AppNotification, 'id' | 'timestamp' | 'read'>[] = [
-    { type: 'info',    title: 'Activitate nouă', message: 'Un antrenament a fost adăugat în orar.',         targetRole: 'all' },
-    { type: 'success', title: 'Bazin disponibil', message: 'Bazinul olimpic este disponibil acum.',           targetRole: 'all' },
-    { type: 'warning', title: 'Reamintire',       message: 'Ai un antrenament programat mâine dimineață.',   targetRole: 'student' },
-    { type: 'alert',   title: 'Mesaj nou',        message: 'Ai primit un mesaj nou pe platformă.',            targetRole: 'all' },
-    { type: 'info',    title: 'Statistici update', message: 'Raportul lunar de activitate este disponibil.', targetRole: 'admin' },
-    { type: 'success', title: 'Student activ',    message: 'Un student a finalizat toate ședințele lunare.',  targetRole: 'coach' },
-];
+import { chatService } from '../services/chatService';
 
 interface NotificationsContextType {
     notifications: AppNotification[];
@@ -19,11 +10,10 @@ interface NotificationsContextType {
     markAsRead: (id: string) => void;
     markAllAsRead: () => void;
     clearAll: () => void;
+    pushNotification: (n: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => void;
 }
 
 const NotificationsContext = createContext<NotificationsContextType | undefined>(undefined);
-
-const INTERVAL_MS = 20000; // Notificare nouă la 20 de secunde
 
 export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
@@ -39,33 +29,63 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
         }
     }, [user]);
 
-    // Simulare "timp real": adaugă o notificare din pool la interval
-    const liveIndexRef = useRef(0);
+    // Push a notification programmatically (used for real-time chat messages, etc.)
+    const pushNotification = useCallback((n: Omit<AppNotification, 'id' | 'timestamp' | 'read'>) => {
+        const notif: AppNotification = {
+            ...n,
+            id: `push-${Date.now()}-${Math.floor(Math.random() * 1e6)}`,
+            timestamp: new Date().toISOString(),
+            read: false,
+        };
+        setNotifications(prev => [notif, ...prev]);
+    }, []);
+
+    // ── Real-time chat → bell notification ──────────────────────────────────────
+    // Keep a single chat connection alive for the whole session so a "Mesaj nou"
+    // notification appears no matter which page the user is on.
     useEffect(() => {
-        if (!user) return;
+        if (!user) {
+            chatService.disconnect();
+            return;
+        }
 
-        const interval = setInterval(() => {
-            const roleKey = getRoleKey(user.role);
-            const pool = liveNotificationPool.filter(
-                n => n.targetRole === 'all' || n.targetRole === roleKey
-            );
-            if (pool.length === 0) return;
+        const myId = parseInt(user.id);
+        const roleKey = getRoleKey(user.role);
+        const chatLink = roleKey === 'admin' ? undefined : `/${roleKey}/chat`;
+        let unsubscribe: (() => void) | null = null;
+        let active = true;
 
-            const template = pool[liveIndexRef.current % pool.length];
-            liveIndexRef.current += 1;
+        (async () => {
+            try {
+                await chatService.connect();
+                if (!active) return;
+                unsubscribe = chatService.onMessage(msg => {
+                    // Ignore my own messages echoed back by the hub.
+                    if (msg.senderId === myId) return;
 
-            const newNotif: AppNotification = {
-                ...template,
-                id: `live-${Date.now()}`,
-                timestamp: new Date().toISOString(),
-                read: false,
-            };
+                    const sender = msg.senderName?.trim() || 'Cineva';
+                    const preview = msg.content.length > 80
+                        ? msg.content.slice(0, 80) + '…'
+                        : msg.content;
 
-            setNotifications(prev => [newNotif, ...prev]);
-        }, INTERVAL_MS);
+                    pushNotification({
+                        type: 'alert',
+                        title: `Mesaj nou de la ${sender}`,
+                        message: preview,
+                        targetRole: roleKey,
+                        link: chatLink,
+                    });
+                });
+            } catch {
+                // Connection errors are non-fatal — the chat page will retry.
+            }
+        })();
 
-        return () => clearInterval(interval);
-    }, [user]);
+        return () => {
+            active = false;
+            unsubscribe?.();
+        };
+    }, [user, pushNotification]);
 
     const markAsRead = useCallback((id: string) => {
         setNotifications(prev =>
@@ -84,7 +104,7 @@ export const NotificationsProvider: React.FC<{ children: React.ReactNode }> = ({
     const unreadCount = notifications.filter(n => !n.read).length;
 
     return (
-        <NotificationsContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead, clearAll }}>
+        <NotificationsContext.Provider value={{ notifications, unreadCount, markAsRead, markAllAsRead, clearAll, pushNotification }}>
             {children}
         </NotificationsContext.Provider>
     );

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, CheckCircle, Clock, RotateCcw, Trophy, MessageCircle, Users, User, AlertTriangle, Activity } from 'lucide-react';
+import { Calendar, CheckCircle, Clock, RotateCcw, Trophy, Users, User, AlertTriangle, Activity } from 'lucide-react';
 import { PageHeader } from '../components/PageHeader';
 import { clsx } from 'clsx';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +23,7 @@ export const CoachDashboard: React.FC = () => {
     const [progressSnapshots, setProgressSnapshots] = useState<ProgressSnapshot[]>([]);
     const [recoveryCredits, setRecoveryCredits] = useState<RecoveryCredit[]>([]);
     const [recoveryRequests, setRecoveryRequests] = useState<RecoveryRequest[]>([]);
-    const [activeTab, setActiveTab] = useState<'schedule' | 'attendance' | 'results' | 'messages' | 'recovery' | 'individual' | 'count'>('schedule');
+    const [activeTab, setActiveTab] = useState<'schedule' | 'attendance' | 'results' | 'recovery' | 'individual' | 'count'>('schedule');
     const [confirmationDate, setConfirmationDate] = useState(() => new Date().toISOString().split('T')[0]);
     const [confirmationHour, setConfirmationHour] = useState('17:00');
     const [attendanceMode, setAttendanceMode] = useState<'group' | 'individual'>('group');
@@ -116,10 +116,16 @@ export const CoachDashboard: React.FC = () => {
             return scheduledStudents.filter((student, index, list) => list.findIndex(item => item.id === student.id) === index);
         }
 
+        // Fall back to the coach's students for that time slot…
         const slotIndex = resultHourOptions.indexOf(resultForm.hour);
-        if (slotIndex === -1) return [];
+        if (slotIndex !== -1) {
+            const bySlot = coachedStudents.filter((_, index) => index % resultHourOptions.length === slotIndex);
+            if (bySlot.length > 0) return bySlot;
+        }
 
-        return coachedStudents.filter((_, index) => index % resultHourOptions.length === slotIndex);
+        // …and if there is no schedule data at all, allow picking any student
+        // so the coach can always record a result.
+        return students;
     }, [coachedStudents, resultForm.date, resultForm.hour, resultHourOptions, schedule, students]);
 
     useEffect(() => {
@@ -488,7 +494,6 @@ export const CoachDashboard: React.FC = () => {
         { key: 'schedule' as const, label: t('coach_dashboard.tabs.schedule') },
         { key: 'attendance' as const, label: t('coach_dashboard.tabs.attendance') },
         { key: 'results' as const, label: t('coach_dashboard.tabs.results') },
-        { key: 'messages' as const, label: t('coach_dashboard.tabs.messages') },
         { key: 'recovery' as const, label: t('coach_dashboard.tabs.recovery') },
         { key: 'individual' as const, label: t('coach_dashboard.tabs.individual') },
         { key: 'count' as const, label: t('coach_dashboard.tabs.count') },
@@ -1079,18 +1084,6 @@ export const CoachDashboard: React.FC = () => {
                                 </table>
                             </div>
                         </div>
-                    </div>
-                )}
-
-                {/* Messages Tab — redirects to real-time Chat */}
-                {activeTab === 'messages' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700/60 p-12 text-center">
-                        <MessageCircle className="mx-auto mb-4 text-host-cyan" size={48} />
-                        <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">{t('coach_dashboard.messages.title')}</h2>
-                        <p className="text-gray-500 dark:text-gray-400 mb-6">{t('coach_dashboard.messages.no_messages')}</p>
-                        <a href="/chat" className="inline-flex items-center gap-2 px-6 py-3 bg-host-cyan text-white font-bold text-sm rounded-full hover:bg-cyan-500 transition-colors shadow-lg">
-                            {t('nav.chat', { defaultValue: 'Open Chat' })}
-                        </a>
                     </div>
                 )}
 

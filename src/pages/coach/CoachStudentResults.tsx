@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { PageHeader } from '../../components/PageHeader';
-import { Trophy, TrendingUp, Activity } from 'lucide-react';
+import { Trophy, TrendingUp, Activity, Plus, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import { resultsService, studentService } from '../../services/api';
-import type { SwimmingResult, Student } from '../../types';
+import type { SwimmingResult, Student, SwimStyle, SwimDistance } from '../../types';
+
+const STYLES: SwimStyle[] = ['freestyle', 'backstroke', 'butterfly', 'breaststroke'];
+const DISTANCES: SwimDistance[] = ['25m', '50m', '100m', '200m'];
 
 export const CoachStudentResults: React.FC = () => {
     const { user } = useAuth();
@@ -13,10 +16,54 @@ export const CoachStudentResults: React.FC = () => {
     const [allResults, setAllResults] = useState<SwimmingResult[]>([]);
     const [students, setStudents]     = useState<Student[]>([]);
 
-    useEffect(() => {
+    const emptyForm = {
+        studentId: '',
+        style: 'freestyle' as SwimStyle,
+        distance: '50m' as SwimDistance,
+        time: '',
+        date: new Date().toISOString().slice(0, 10),
+        notes: '',
+    };
+    const [modalOpen, setModalOpen] = useState(false);
+    const [form, setForm]           = useState(emptyForm);
+    const [saving, setSaving]       = useState(false);
+    const [formError, setFormError] = useState('');
+
+    const loadResults = () =>
         resultsService.getAll().then(r => setAllResults(r.filter(res => res.coachId === coachId)));
+
+    useEffect(() => {
+        loadResults();
         studentService.getAll().then(setStudents);
     }, [coachId]);
+
+    const handleCreate = async () => {
+        setFormError('');
+        if (!form.studentId) { setFormError('Selectează un elev.'); return; }
+        if (!/^\d{1,2}:\d{2}(\.\d{1,2})?$/.test(form.time.trim())) {
+            setFormError('Timp invalid. Format: MM:SS sau MM:SS.ss (ex. 00:32.45).');
+            return;
+        }
+        setSaving(true);
+        try {
+            await resultsService.create({
+                studentId: form.studentId,
+                coachId,
+                style:     form.style,
+                distance:  form.distance,
+                time:      form.time.trim(),
+                date:      new Date(form.date).toISOString(),
+                notes:     form.notes || undefined,
+            });
+            setModalOpen(false);
+            setForm(emptyForm);
+            await loadResults();
+        } catch (err: any) {
+            setFormError(err?.response?.data?.message ?? 'Eroare la salvare. Verifică datele și conexiunea cu serverul.');
+        } finally {
+            setSaving(false);
+        }
+    };
 
     const parseTime = (timeStr: string): number => {
         const parts = timeStr.split(':');
@@ -50,6 +97,16 @@ export const CoachStudentResults: React.FC = () => {
             <PageHeader title="Student Results" subtitle="Track and review your students' swimming performance" />
 
             <div className="container mx-auto px-6 mt-10 relative z-20 max-w-5xl space-y-8">
+                {/* Add result button */}
+                <div className="flex justify-end">
+                    <button
+                        onClick={() => { setForm(emptyForm); setFormError(''); setModalOpen(true); }}
+                        className="inline-flex items-center gap-2 bg-host-cyan hover:bg-cyan-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                        <Plus size={18} /> Adaugă rezultat
+                    </button>
+                </div>
+
                 {/* Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                     <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700">
@@ -156,10 +213,115 @@ export const CoachStudentResults: React.FC = () => {
                 {allResults.length === 0 && (
                     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 p-12 text-center">
                         <Trophy className="mx-auto mb-4 text-gray-300 dark:text-gray-600" size={40} />
-                        <p className="text-gray-500 dark:text-gray-400">No student results recorded yet.</p>
+                        <p className="text-gray-500 dark:text-gray-400">Niciun rezultat înregistrat încă. Apasă „Adaugă rezultat" pentru a începe.</p>
                     </div>
                 )}
             </div>
+
+            {/* ── Add Result Modal ─────────────────────────────────────────────── */}
+            {modalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md">
+                        <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700">
+                            <h2 className="text-lg font-bold text-gray-800 dark:text-white">Adaugă rezultat</h2>
+                            <button onClick={() => setModalOpen(false)} className="p-1 text-gray-400 hover:text-gray-600 rounded-lg">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Elev *</label>
+                                <select
+                                    value={form.studentId}
+                                    onChange={e => setForm(f => ({ ...f, studentId: e.target.value }))}
+                                    className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-host-cyan/40"
+                                >
+                                    <option value="">— Selectează elevul —</option>
+                                    {students.map(s => (
+                                        <option key={s.id} value={s.id}>{s.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Stil *</label>
+                                    <select
+                                        value={form.style}
+                                        onChange={e => setForm(f => ({ ...f, style: e.target.value as SwimStyle }))}
+                                        className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-host-cyan/40 capitalize"
+                                    >
+                                        {STYLES.map(s => <option key={s} value={s}>{s}</option>)}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Distanță *</label>
+                                    <select
+                                        value={form.distance}
+                                        onChange={e => setForm(f => ({ ...f, distance: e.target.value as SwimDistance }))}
+                                        className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-host-cyan/40"
+                                    >
+                                        {DISTANCES.map(d => <option key={d} value={d}>{d}</option>)}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Timp *</label>
+                                    <input
+                                        type="text"
+                                        value={form.time}
+                                        onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
+                                        placeholder="00:32.45"
+                                        className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-host-cyan/40"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Data *</label>
+                                    <input
+                                        type="date"
+                                        value={form.date}
+                                        onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                                        className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-host-cyan/40"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">Note (opțional)</label>
+                                <textarea
+                                    value={form.notes}
+                                    onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+                                    rows={2}
+                                    className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2.5 text-sm text-gray-800 dark:text-gray-100 outline-none focus:ring-2 focus:ring-host-cyan/40 resize-none"
+                                />
+                            </div>
+
+                            {formError && (
+                                <p className="text-sm text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">{formError}</p>
+                            )}
+                        </div>
+
+                        <div className="flex justify-end gap-3 p-6 border-t border-gray-100 dark:border-gray-700">
+                            <button
+                                onClick={() => setModalOpen(false)}
+                                className="px-4 py-2.5 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors font-medium"
+                            >
+                                Anulează
+                            </button>
+                            <button
+                                onClick={handleCreate}
+                                disabled={saving}
+                                className="inline-flex items-center gap-2 bg-host-cyan hover:bg-cyan-500 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg transition-all disabled:opacity-60 disabled:cursor-wait"
+                            >
+                                {saving ? 'Se salvează…' : 'Salvează'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

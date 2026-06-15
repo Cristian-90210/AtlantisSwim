@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import {
     MessageCircle, Send, Phone, Video, MoreVertical, Paperclip, Smile, X, Info,
-    CheckCheck, Search, ChevronLeft, Share2, Lock, BellOff, Camera
+    CheckCheck, Search, ChevronLeft, Share2, Lock, BellOff, Camera, Pencil, Trash2, Ban, Check
 } from 'lucide-react';
 import { PageHeader } from '../../components/PageHeader';
 import { clsx } from 'clsx';
@@ -20,6 +20,9 @@ export const CoachChat: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isProfileOpen, setIsProfileOpen] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [openedIds, setOpenedIds] = useState<Set<number>>(new Set());
+    const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
+    const [editText, setEditText] = useState('');
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
     // Connect SignalR once and load contacts
@@ -35,17 +38,19 @@ export const CoachChat: React.FC = () => {
                 if (users.length > 0) setSelectedId(users[0].id);
 
                 await chatService.connect();
-                if (cancelled) {
-                    chatService.disconnect();
-                    return;
-                }
+                if (cancelled) return;
 
                 // Deduplicate by ID to guard against StrictMode double-registration
-                unsubscribe = chatService.onMessage(msg => {
+                const offMsg = chatService.onMessage(msg => {
                     setMessages(prev =>
                         prev.some(m => m.id === msg.id) ? prev : [...prev, msg]
                     );
                 });
+                // Edited / deleted messages replace the existing one in place.
+                const offUpd = chatService.onMessageUpdate(upd => {
+                    setMessages(prev => prev.map(m => m.id === upd.id ? { ...m, ...upd } : m));
+                });
+                unsubscribe = () => { offMsg(); offUpd(); };
             } catch (err) {
                 if (!cancelled) console.error('Chat init error', err);
             } finally {
@@ -56,13 +61,16 @@ export const CoachChat: React.FC = () => {
         return () => {
             cancelled = true;
             unsubscribe?.();
-            chatService.disconnect();
+            // The connection is owned by NotificationsProvider for the whole session,
+            // so we only drop our own handler here — we don't disconnect.
         };
     }, []);
 
     // Load history when selected contact changes
     useEffect(() => {
         if (!selectedId) return;
+        // Mark this conversation opened so its (now-read) backend unread count clears.
+        setOpenedIds(prev => prev.has(selectedId) ? prev : new Set(prev).add(selectedId));
         setIsLoading(true);
         chatService.getHistory(selectedId)
             .then(data => setMessages(data))
@@ -91,6 +99,34 @@ export const CoachChat: React.FC = () => {
         }
     };
 
+    const startEdit = (m: ChatMessage) => {
+        setEditingMessageId(m.id);
+        setEditText(m.content);
+    };
+    const cancelEdit = () => {
+        setEditingMessageId(null);
+        setEditText('');
+    };
+    const saveEdit = async (m: ChatMessage) => {
+        const text = editText.trim();
+        if (!text || text === m.content) { cancelEdit(); return; }
+        try {
+            await chatService.editMessage(m.id, text);
+        } catch (err) {
+            console.error('Edit failed', err);
+        }
+        cancelEdit();
+    };
+    const handleDeleteMessage = async (m: ChatMessage) => {
+        if (!window.confirm('Sigur vrei să ștergi acest mesaj?')) return;
+        try {
+            await chatService.deleteMessage(m.id);
+        } catch (err) {
+            console.error('Delete failed', err);
+        }
+        if (editingMessageId === m.id) cancelEdit();
+    };
+
     const activeMessages = useMemo(() =>
         messages.filter(m =>
             (m.senderId === myId && m.receiverId === selectedId) ||
@@ -106,22 +142,29 @@ export const CoachChat: React.FC = () => {
                     (m.senderId === myId && m.receiverId === contact.id) ||
                     (m.senderId === contact.id && m.receiverId === myId)
                 );
-                const last = msgs[msgs.length - 1];
-                const unread = msgs.filter(m => m.senderId !== myId && !m.isRead).length;
+                const loadedLast = msgs[msgs.length - 1];
+                // Fall back to the backend-provided last-message info so contacts we
+                // haven't opened this session are still ordered by recency.
+                const lastAt = loadedLast?.sentAt ?? contact.lastMessageAt ?? null;
+                const lastContent = loadedLast?.content ?? contact.lastMessageContent ?? '';
+                const liveUnread = msgs.filter(m => m.senderId === contact.id && !m.isRead).length;
+                const baseUnread = openedIds.has(contact.id) ? 0 : (contact.unreadCount ?? 0);
+                const unread = contact.id === selectedId ? 0 : Math.max(liveUnread, baseUnread);
                 return {
                     id: contact.id,
                     name: `${contact.firstName} ${contact.lastName}`.trim(),
                     avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(contact.firstName + '+' + contact.lastName)}&background=random`,
-                    lastMessage: last,
+                    lastAt,
+                    lastContent,
                     unreadCount: unread,
                 };
             })
             .sort((a, b) => {
-                const ta = a.lastMessage ? new Date(a.lastMessage.sentAt).getTime() : 0;
-                const tb = b.lastMessage ? new Date(b.lastMessage.sentAt).getTime() : 0;
+                const ta = a.lastAt ? new Date(a.lastAt).getTime() : 0;
+                const tb = b.lastAt ? new Date(b.lastAt).getTime() : 0;
                 return tb - ta;
             }),
-        [contacts, messages, myId]
+        [contacts, messages, myId, selectedId, openedIds]
     );
 
     const filtered = conversations.filter(c =>
@@ -191,10 +234,10 @@ export const CoachChat: React.FC = () => {
                                             <div className="flex-1 min-w-0 text-left">
                                                 <div className="flex justify-between items-center mb-1">
                                                     <span className={clsx("font-bold text-[0.95rem] truncate transition-colors", isActive ? "text-host-cyan" : "text-gray-100")}>{conv.name}</span>
-                                                    <span className="text-[10px] text-gray-500 whitespace-nowrap ml-2">{conv.lastMessage ? formatTime(conv.lastMessage.sentAt) : ''}</span>
+                                                    <span className="text-[10px] text-gray-500 whitespace-nowrap ml-2">{conv.lastAt ? formatTime(conv.lastAt) : ''}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <p className="text-[13px] text-gray-400 truncate leading-relaxed">{conv.lastMessage?.content || 'Apasă pentru chat...'}</p>
+                                                    <p className="text-[13px] text-gray-400 truncate leading-relaxed">{conv.lastContent || 'Apasă pentru chat...'}</p>
                                                     {conv.unreadCount > 0 && <span className="bg-host-cyan text-[#0f172a] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center ml-2 shadow-[0_0_10px_rgba(34,211,238,0.5)]">{conv.unreadCount}</span>}
                                                 </div>
                                             </div>
@@ -247,15 +290,52 @@ export const CoachChat: React.FC = () => {
                                 ) : (
                                     activeMessages.map(m => {
                                         const isMine = m.senderId === myId;
+                                        const isEditing = editingMessageId === m.id;
                                         return (
                                             <div key={m.id} className={clsx('flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-300', isMine ? 'items-end' : 'items-start')}>
-                                                <div className={clsx('group relative max-w-[65%] px-6 py-4 rounded-[1.8rem] shadow-xl', isMine ? 'bg-host-cyan text-[#0f172a] rounded-tr-sm font-medium pr-10' : 'bg-[#1e293b] text-gray-100 rounded-tl-sm font-normal pl-10 border border-white/5')}>
-                                                    {!isMine && <div className="absolute top-4 left-4 text-host-cyan/30 flex-shrink-0"><MessageCircle size={14} /></div>}
-                                                    <p className="text-[0.95rem] leading-relaxed break-words">{m.content}</p>
-                                                    <div className={clsx("flex items-center gap-1.5 mt-2 justify-end opacity-60", isMine ? "text-[#0f172a]" : "text-gray-500")}>
-                                                        <span className="text-[10px] font-bold">{formatTime(m.sentAt)}</span>
-                                                        {isMine && <CheckCheck size={14} className="opacity-80" />}
-                                                    </div>
+                                                <div className={clsx('group relative max-w-[65%] px-6 py-4 rounded-[1.8rem] shadow-xl',
+                                                    m.isDeleted ? 'bg-white/5 text-gray-400 border border-white/5'
+                                                    : isMine ? 'bg-host-cyan text-[#0f172a] rounded-tr-sm font-medium pr-10'
+                                                    : 'bg-[#1e293b] text-gray-100 rounded-tl-sm font-normal pl-10 border border-white/5')}>
+                                                    {!isMine && !m.isDeleted && <div className="absolute top-4 left-4 text-host-cyan/30 flex-shrink-0"><MessageCircle size={14} /></div>}
+
+                                                    {m.isDeleted ? (
+                                                        <p className="text-[0.9rem] italic flex items-center gap-2 opacity-80"><Ban size={14} /> Mesaj șters</p>
+                                                    ) : isEditing ? (
+                                                        <div className="flex flex-col gap-2 min-w-[220px]">
+                                                            <textarea
+                                                                value={editText}
+                                                                onChange={e => setEditText(e.target.value)}
+                                                                onKeyDown={e => {
+                                                                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(m); }
+                                                                    if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); }
+                                                                }}
+                                                                autoFocus
+                                                                rows={2}
+                                                                className="w-full bg-white/20 text-[#0f172a] rounded-xl px-3 py-2 text-sm outline-none resize-none"
+                                                            />
+                                                            <div className="flex justify-end gap-2">
+                                                                <button onClick={cancelEdit} className="p-1.5 rounded-lg bg-black/10 hover:bg-black/20" title="Anulează"><X size={14} /></button>
+                                                                <button onClick={() => saveEdit(m)} className="p-1.5 rounded-lg bg-black/20 hover:bg-black/30" title="Salvează"><Check size={14} /></button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-[0.95rem] leading-relaxed break-words">{m.content}</p>
+                                                    )}
+
+                                                    {!isEditing && (
+                                                        <div className={clsx("flex items-center gap-1.5 mt-2 justify-end opacity-60", isMine && !m.isDeleted ? "text-[#0f172a]" : "text-gray-500")}>
+                                                            {isMine && !m.isDeleted && (
+                                                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mr-1">
+                                                                    <button onClick={() => startEdit(m)} title="Editează" className="p-1 rounded hover:bg-black/15"><Pencil size={12} /></button>
+                                                                    <button onClick={() => handleDeleteMessage(m)} title="Șterge" className="p-1 rounded hover:bg-black/15"><Trash2 size={12} /></button>
+                                                                </div>
+                                                            )}
+                                                            {m.isEdited && !m.isDeleted && <span className="text-[9px] italic">(editat)</span>}
+                                                            <span className="text-[10px] font-bold">{formatTime(m.sentAt)}</span>
+                                                            {isMine && !m.isDeleted && <CheckCheck size={14} className="opacity-80" />}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );

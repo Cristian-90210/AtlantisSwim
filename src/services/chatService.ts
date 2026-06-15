@@ -8,6 +8,10 @@ export interface ChatMessage {
     content: string;
     sentAt: string;
     isRead: boolean;
+    senderName?: string;   // included on live messages pushed by the hub
+    isEdited?: boolean;
+    editedAt?: string | null;
+    isDeleted?: boolean;
 }
 
 export interface ChatUser {
@@ -15,6 +19,9 @@ export interface ChatUser {
     firstName: string;
     lastName: string;
     role: number;
+    lastMessageAt?: string | null;     // ISO timestamp of the most recent message, if any
+    lastMessageContent?: string | null;
+    unreadCount?: number;              // unread messages this contact sent me
 }
 
 type MessageHandler = (message: ChatMessage) => void;
@@ -22,29 +29,49 @@ type MessageHandler = (message: ChatMessage) => void;
 class ChatService {
     private connection: signalR.HubConnection | null = null;
     private handlers: MessageHandler[] = [];
+    private updateHandlers: MessageHandler[] = [];
+    private connectPromise: Promise<void> | null = null;
 
     async connect(): Promise<void> {
         if (this.connection?.state === signalR.HubConnectionState.Connected) return;
+        // Guard against concurrent connect() calls (e.g. the global provider and a
+        // chat page both connecting at once) creating duplicate connections.
+        if (this.connectPromise) return this.connectPromise;
 
-        this.connection = new signalR.HubConnectionBuilder()
-            .withUrl('http://localhost:5000/hubs/chat', {
-                accessTokenFactory: () => localStorage.getItem('auth_token') ?? '',
-            })
-            .withAutomaticReconnect()
-            .configureLogging(signalR.LogLevel.Warning)
-            .build();
+        this.connectPromise = (async () => {
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl('http://localhost:5000/hubs/chat', {
+                    accessTokenFactory: () => localStorage.getItem('auth_token') ?? '',
+                })
+                .withAutomaticReconnect()
+                .configureLogging(signalR.LogLevel.Warning)
+                .build();
 
-        this.connection.on('ReceiveMessage', (msg: ChatMessage) => {
-            this.handlers.forEach(h => h(msg));
-        });
+            connection.on('ReceiveMessage', (msg: ChatMessage) => {
+                this.handlers.forEach(h => h(msg));
+            });
 
-        await this.connection.start();
+            // Edited / deleted messages are pushed here so open chats update live.
+            connection.on('MessageUpdated', (msg: ChatMessage) => {
+                this.updateHandlers.forEach(h => h(msg));
+            });
+
+            await connection.start();
+            this.connection = connection;
+        })();
+
+        try {
+            await this.connectPromise;
+        } finally {
+            this.connectPromise = null;
+        }
     }
 
     async disconnect(): Promise<void> {
         await this.connection?.stop();
         this.connection = null;
         this.handlers = [];
+        this.updateHandlers = [];
     }
 
     onMessage(handler: MessageHandler): () => void {
@@ -54,11 +81,33 @@ class ChatService {
         };
     }
 
+    // Subscribe to edit/delete updates for already-sent messages.
+    onMessageUpdate(handler: MessageHandler): () => void {
+        this.updateHandlers.push(handler);
+        return () => {
+            this.updateHandlers = this.updateHandlers.filter(h => h !== handler);
+        };
+    }
+
     async sendMessage(receiverId: number, content: string): Promise<void> {
         if (this.connection?.state !== signalR.HubConnectionState.Connected) {
             await this.connect();
         }
         await this.connection!.invoke('SendMessage', receiverId, content);
+    }
+
+    async editMessage(messageId: number, content: string): Promise<void> {
+        if (this.connection?.state !== signalR.HubConnectionState.Connected) {
+            await this.connect();
+        }
+        await this.connection!.invoke('EditMessage', messageId, content);
+    }
+
+    async deleteMessage(messageId: number): Promise<void> {
+        if (this.connection?.state !== signalR.HubConnectionState.Connected) {
+            await this.connect();
+        }
+        await this.connection!.invoke('DeleteMessage', messageId);
     }
 
     async markRead(senderId: number): Promise<void> {
