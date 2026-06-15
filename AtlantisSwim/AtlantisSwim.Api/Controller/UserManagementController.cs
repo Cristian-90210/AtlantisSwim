@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AtlantisSwim.DataAccess;
 using AtlantisSwim.Domain.Entities.User;
 using AtlantisSwim.Domain.Models.User;
@@ -103,6 +104,33 @@ namespace AtlantisSwim.Api.Controller
             return NoContent();
         }
 
+        public class AvatarDto { public string? Avatar { get; set; } }
+
+        // PUT /api/users/me/avatar — the logged-in user updates their own picture
+        [HttpPut("me/avatar")]
+        public async Task<IActionResult> UpdateMyAvatar([FromBody] AvatarDto dto)
+        {
+            var idStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(idStr, out int myId)) return Unauthorized();
+
+            var user = await _db.Users.FindAsync(myId);
+            if (user == null) return NotFound();
+
+            // Basic guard: only accept image data URLs, capped to keep the row reasonable.
+            var avatar = dto.Avatar?.Trim();
+            if (!string.IsNullOrEmpty(avatar))
+            {
+                if (!avatar.StartsWith("data:image/"))
+                    return BadRequest(new { message = "Format invalid. Încarcă o imagine." });
+                if (avatar.Length > 2_000_000)
+                    return BadRequest(new { message = "Imaginea este prea mare (max ~1.5MB)." });
+            }
+
+            user.Avatar = string.IsNullOrEmpty(avatar) ? null : avatar;
+            await _db.SaveChangesAsync();
+            return Ok(ToDto(user));
+        }
+
         private static UserDto ToDto(UserData u) => new()
         {
             Id           = u.Id,
@@ -120,7 +148,8 @@ namespace AtlantisSwim.Api.Controller
                 _                => u.Role.ToString()
             },
             IsActive     = u.IsActive,
-            RegisteredOn = u.RegisteredOn
+            RegisteredOn = u.RegisteredOn,
+            Avatar       = u.Avatar
         };
     }
 }

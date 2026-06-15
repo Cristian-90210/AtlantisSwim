@@ -25,11 +25,16 @@ export interface ChatUser {
 }
 
 type MessageHandler = (message: ChatMessage) => void;
+type PresenceHandler = (userId: number, online: boolean) => void;
+type UserIdHandler = (userId: number) => void;
 
 class ChatService {
     private connection: signalR.HubConnection | null = null;
     private handlers: MessageHandler[] = [];
     private updateHandlers: MessageHandler[] = [];
+    private presenceHandlers: PresenceHandler[] = [];
+    private typingHandlers: UserIdHandler[] = [];
+    private readHandlers: UserIdHandler[] = [];
     private connectPromise: Promise<void> | null = null;
 
     async connect(): Promise<void> {
@@ -56,6 +61,13 @@ class ChatService {
                 this.updateHandlers.forEach(h => h(msg));
             });
 
+            // Presence (online / offline)
+            connection.on('UserOnline',  (userId: number) => this.presenceHandlers.forEach(h => h(userId, true)));
+            connection.on('UserOffline', (userId: number) => this.presenceHandlers.forEach(h => h(userId, false)));
+            // Typing indicator + read receipts
+            connection.on('UserTyping',   (userId: number) => this.typingHandlers.forEach(h => h(userId)));
+            connection.on('MessagesRead', (userId: number) => this.readHandlers.forEach(h => h(userId)));
+
             await connection.start();
             this.connection = connection;
         })();
@@ -72,6 +84,40 @@ class ChatService {
         this.connection = null;
         this.handlers = [];
         this.updateHandlers = [];
+        this.presenceHandlers = [];
+        this.typingHandlers = [];
+        this.readHandlers = [];
+    }
+
+    // Presence — fires (userId, online) whenever a contact connects/disconnects.
+    onPresence(handler: PresenceHandler): () => void {
+        this.presenceHandlers.push(handler);
+        return () => { this.presenceHandlers = this.presenceHandlers.filter(h => h !== handler); };
+    }
+
+    // Fires with the id of a contact who is currently typing to me.
+    onTyping(handler: UserIdHandler): () => void {
+        this.typingHandlers.push(handler);
+        return () => { this.typingHandlers = this.typingHandlers.filter(h => h !== handler); };
+    }
+
+    // Fires with the id of a contact who just read my messages.
+    onMessagesRead(handler: UserIdHandler): () => void {
+        this.readHandlers.push(handler);
+        return () => { this.readHandlers = this.readHandlers.filter(h => h !== handler); };
+    }
+
+    async getOnlineUsers(): Promise<number[]> {
+        if (this.connection?.state !== signalR.HubConnectionState.Connected) {
+            await this.connect();
+        }
+        return this.connection!.invoke<number[]>('GetOnlineUsers');
+    }
+
+    async sendTyping(receiverId: number): Promise<void> {
+        if (this.connection?.state === signalR.HubConnectionState.Connected) {
+            try { await this.connection.invoke('Typing', receiverId); } catch { /* ignore */ }
+        }
     }
 
     onMessage(handler: MessageHandler): () => void {

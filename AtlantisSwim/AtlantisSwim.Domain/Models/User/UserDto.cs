@@ -12,5 +12,6 @@ namespace AtlantisSwim.Domain.Models.User
         public string RoleName  { get; set; } = string.Empty;
         public bool   IsActive  { get; set; }
         public DateTime RegisteredOn { get; set; }
+        public string? Avatar   { get; set; }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Security.Claims;
 using AtlantisSwim.DataAccess;
 using AtlantisSwim.Domain.Entities.Chat;
@@ -12,9 +13,56 @@ namespace AtlantisSwim.Api.Hubs
     {
         private readonly DbSession _db;
 
+        // userId -> number of active connections (a user may have multiple tabs open)
+        private static readonly ConcurrentDictionary<int, int> _online = new();
+
         public ChatHub(DbSession db)
         {
             _db = db;
+        }
+
+        private int? CurrentUserId()
+        {
+            var idStr = Context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(idStr, out int id) ? id : (int?)null;
+        }
+
+        public override async Task OnConnectedAsync()
+        {
+            var id = CurrentUserId();
+            if (id.HasValue)
+            {
+                var count = _online.AddOrUpdate(id.Value, 1, (_, c) => c + 1);
+                if (count == 1) // just came online
+                    await Clients.Others.SendAsync("UserOnline", id.Value);
+            }
+            await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(System.Exception? exception)
+        {
+            var id = CurrentUserId();
+            if (id.HasValue)
+            {
+                var count = _online.AddOrUpdate(id.Value, 0, (_, c) => c - 1);
+                if (count <= 0)
+                {
+                    _online.TryRemove(id.Value, out _);
+                    await Clients.Others.SendAsync("UserOffline", id.Value);
+                }
+            }
+            await base.OnDisconnectedAsync(exception);
+        }
+
+        // Returns the ids of users currently connected — used to seed the UI on load.
+        public Task<int[]> GetOnlineUsers() => Task.FromResult(_online.Keys.ToArray());
+
+        // Notify a contact that the current user is typing to them.
+        public async Task Typing(int receiverId)
+        {
+            var senderId = CurrentUserId();
+            if (senderId.HasValue)
+                await Clients.User(receiverId.ToString()).SendAsync("UserTyping", senderId.Value);
         }
 
         public async Task SendMessage(int receiverId, string content)
@@ -123,7 +171,12 @@ namespace AtlantisSwim.Api.Hubs
                 .ToListAsync();
 
             foreach (var m in unread) m.IsRead = true;
-            if (unread.Count > 0) await _db.SaveChangesAsync();
+            if (unread.Count > 0)
+            {
+                await _db.SaveChangesAsync();
+                // Tell the original sender their messages to this reader were seen.
+                await Clients.User(senderId.ToString()).SendAsync("MessagesRead", receiverId);
+            }
         }
     }
 }

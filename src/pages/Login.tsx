@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, Waves, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { UserRole, getRoleKey } from '../types';
@@ -181,6 +181,12 @@ export const Login: React.FC = () => {
                             </span>
                             <div className="absolute top-0 -left-full w-full h-full bg-linear-to-r from-transparent via-white/20 to-transparent group-hover:left-full transition-all duration-700 ease-in-out"></div>
                         </button>
+
+                        <div className="text-center">
+                            <Link to="/forgot-password" className="text-sm text-blue-200/70 hover:text-host-cyan transition-colors">
+                                Ai uitat parola?
+                            </Link>
+                        </div>
                     </form>
 
                     {/* DEMO ACCOUNTS PANEL — development only (DEMO_ACCOUNTS is empty in production) */}

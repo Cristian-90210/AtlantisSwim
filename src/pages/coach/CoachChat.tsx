@@ -23,6 +23,10 @@ export const CoachChat: React.FC = () => {
     const [openedIds, setOpenedIds] = useState<Set<number>>(new Set());
     const [editingMessageId, setEditingMessageId] = useState<number | null>(null);
     const [editText, setEditText] = useState('');
+    const [onlineIds, setOnlineIds] = useState<Set<number>>(new Set());
+    const [typingFrom, setTypingFrom] = useState<number | null>(null);
+    const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const myTypingThrottleRef = useRef(0);
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
     // Connect SignalR once and load contacts
@@ -50,7 +54,30 @@ export const CoachChat: React.FC = () => {
                 const offUpd = chatService.onMessageUpdate(upd => {
                     setMessages(prev => prev.map(m => m.id === upd.id ? { ...m, ...upd } : m));
                 });
-                unsubscribe = () => { offMsg(); offUpd(); };
+                // Presence — keep the set of online contacts up to date.
+                const offPresence = chatService.onPresence((uid, online) => {
+                    setOnlineIds(prev => {
+                        const next = new Set(prev);
+                        if (online) next.add(uid); else next.delete(uid);
+                        return next;
+                    });
+                });
+                // Typing — show "scrie..." for ~2.5s after the last keystroke.
+                const offTyping = chatService.onTyping(uid => {
+                    setTypingFrom(uid);
+                    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+                    typingTimerRef.current = setTimeout(() => setTypingFrom(null), 2500);
+                });
+                // Read receipts — flip my messages to "seen" when the contact reads them.
+                const offRead = chatService.onMessagesRead(readerId => {
+                    setMessages(prev => prev.map(m =>
+                        (m.senderId === myId && m.receiverId === readerId) ? { ...m, isRead: true } : m
+                    ));
+                });
+                unsubscribe = () => { offMsg(); offUpd(); offPresence(); offTyping(); offRead(); };
+
+                // Seed the currently-online users.
+                chatService.getOnlineUsers().then(ids => setOnlineIds(new Set(ids))).catch(() => {});
             } catch (err) {
                 if (!cancelled) console.error('Chat init error', err);
             } finally {
@@ -86,6 +113,21 @@ export const CoachChat: React.FC = () => {
         }, 50);
         return () => clearTimeout(t);
     }, [messages]);
+
+    // While a conversation is open, mark its incoming messages as read (notifies sender).
+    useEffect(() => {
+        if (selectedId) chatService.markRead(selectedId);
+        setTypingFrom(null);
+    }, [selectedId, messages.length]);
+
+    const handleTyping = () => {
+        if (!selectedId) return;
+        const now = Date.now();
+        if (now - myTypingThrottleRef.current > 1500) {
+            myTypingThrottleRef.current = now;
+            chatService.sendTyping(selectedId);
+        }
+    };
 
     const handleSendMessage = async () => {
         if (!newMessage.trim() || !selectedId) return;
@@ -229,7 +271,7 @@ export const CoachChat: React.FC = () => {
                                                 <div className={clsx("w-14 h-14 rounded-3xl overflow-hidden border-2 transition-transform duration-300 group-hover:scale-105", isActive ? "border-host-cyan shadow-[0_0_15px_rgba(34,211,238,0.3)]" : "border-white/10")}>
                                                     <img src={conv.avatar} alt={conv.name} className="w-full h-full object-cover" />
                                                 </div>
-                                                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 rounded-full border-[3px] border-[#1e293b]"></div>
+                                                <div className={clsx("absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-[3px] border-[#1e293b]", onlineIds.has(conv.id) ? "bg-green-500" : "bg-gray-500")}></div>
                                             </div>
                                             <div className="flex-1 min-w-0 text-left">
                                                 <div className="flex justify-between items-center mb-1">
@@ -237,7 +279,7 @@ export const CoachChat: React.FC = () => {
                                                     <span className="text-[10px] text-gray-500 whitespace-nowrap ml-2">{conv.lastAt ? formatTime(conv.lastAt) : ''}</span>
                                                 </div>
                                                 <div className="flex justify-between items-center">
-                                                    <p className="text-[13px] text-gray-400 truncate leading-relaxed">{conv.lastContent || 'Apasă pentru chat...'}</p>
+                                                    <p className={clsx("text-[13px] truncate leading-relaxed", typingFrom === conv.id ? "text-host-cyan italic" : "text-gray-400")}>{typingFrom === conv.id ? 'scrie...' : (conv.lastContent || 'Apasă pentru chat...')}</p>
                                                     {conv.unreadCount > 0 && <span className="bg-host-cyan text-[#0f172a] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center ml-2 shadow-[0_0_10px_rgba(34,211,238,0.5)]">{conv.unreadCount}</span>}
                                                 </div>
                                             </div>
@@ -254,11 +296,11 @@ export const CoachChat: React.FC = () => {
                                     <button className="lg:hidden p-2 text-gray-400 hover:text-white"><ChevronLeft /></button>
                                     <div className="relative">
                                         <img src={activeConv?.avatar} className="w-12 h-12 rounded-2xl border border-white/10 object-cover" />
-                                        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 rounded-full border-[3px] border-[#1e293b]"></div>
+                                        <div className={clsx("absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-[3px] border-[#1e293b]", selectedId && onlineIds.has(selectedId) ? "bg-green-500" : "bg-gray-500")}></div>
                                     </div>
                                     <div>
                                         <h3 className="font-extrabold text-gray-100">{activeConv?.name}</h3>
-                                        <p className="text-[11px] text-green-500 font-bold uppercase tracking-widest opacity-80">Online</p>
+                                        <p className={clsx("text-[11px] font-bold uppercase tracking-widest opacity-80", typingFrom && typingFrom === selectedId ? "text-host-cyan" : selectedId && onlineIds.has(selectedId) ? "text-green-500" : "text-gray-500")}>{typingFrom && typingFrom === selectedId ? 'scrie...' : selectedId && onlineIds.has(selectedId) ? 'Online' : 'Offline'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2">
@@ -333,7 +375,7 @@ export const CoachChat: React.FC = () => {
                                                             )}
                                                             {m.isEdited && !m.isDeleted && <span className="text-[9px] italic">(editat)</span>}
                                                             <span className="text-[10px] font-bold">{formatTime(m.sentAt)}</span>
-                                                            {isMine && !m.isDeleted && <CheckCheck size={14} className="opacity-80" />}
+                                                            {isMine && !m.isDeleted && (m.isRead ? <CheckCheck size={14} className="text-blue-600" /> : <Check size={14} className="opacity-60" />)}
                                                         </div>
                                                     )}
                                                 </div>
@@ -349,7 +391,7 @@ export const CoachChat: React.FC = () => {
                                     <textarea
                                         rows={1}
                                         value={newMessage}
-                                        onChange={e => setNewMessage(e.target.value)}
+                                        onChange={e => { setNewMessage(e.target.value); handleTyping(); }}
                                         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendMessage(); } }}
                                         placeholder="Mesajul tău..."
                                         className="flex-1 bg-transparent border-none outline-none resize-none py-3 text-[0.95rem] placeholder:text-gray-500 max-h-32 min-h-[44px]"

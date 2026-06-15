@@ -7,6 +7,7 @@ import {
     SettingsToggleItem,
     SettingsSelectItem,
 } from '../../components/settings/SettingsComponents';
+import { AvatarUploader } from '../../components/AvatarUploader';
 
 export const StudentSettings: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
@@ -22,6 +23,9 @@ export const StudentSettings: React.FC = () => {
             <PageHeader title="Settings" subtitle="Manage your account preferences and notifications" />
 
             <div className="container mx-auto px-6 mt-10 relative z-20 max-w-4xl space-y-6">
+                {/* ── Profile picture ── */}
+                <AvatarUploader />
+
                 {/* ── Notifications ── */}
                 <SettingsSection
                     icon={Bell}

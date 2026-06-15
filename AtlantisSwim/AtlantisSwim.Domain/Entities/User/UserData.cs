@@ -37,5 +37,15 @@ namespace AtlantisSwim.Domain.Entities.User
         public DateTime RegisteredOn { get; set; }
 
         public bool IsActive { get; set; } = true;
+
+        // Profile picture stored as a data URL (data:image/...;base64,...). Nullable.
+        [Column(TypeName = "text")]
+        public string? Avatar { get; set; }
+
+        // Self-service password reset (token + expiry). Nullable when no reset pending.
+        [StringLength(100)]
+        public string? ResetToken { get; set; }
+
+        public DateTime? ResetTokenExpiry { get; set; }
     }
 }

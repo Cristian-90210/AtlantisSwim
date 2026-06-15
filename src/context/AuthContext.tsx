@@ -7,6 +7,7 @@ interface AuthContextType {
     user: User | null;
     login: (email: string, password: string) => Promise<boolean>;
     logout: () => void;
+    updateAvatar: (avatar: string | undefined) => void;
     isAuthenticated: boolean;
     isAdmin: boolean;
 }
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 name:   `${data.firstName} ${data.lastName}`.trim() || data.userName,
                 email:  data.email,
                 role:   data.roleId as UserRole,
+                avatar: data.avatar ?? undefined,
             };
 
             setUser(loggedIn);
@@ -57,12 +59,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         window.dispatchEvent(new Event('user-logout'));
     };
 
+    const updateAvatar = (avatar: string | undefined) => {
+        setUser(prev => {
+            if (!prev) return prev;
+            const next = { ...prev, avatar };
+            localStorage.setItem('user', JSON.stringify(next));
+            return next;
+        });
+    };
+
     return (
         <AuthContext.Provider
             value={{
                 user,
                 login,
                 logout,
+                updateAvatar,
                 isAuthenticated: !!user,
                 isAdmin: user?.role === UserRole.Admin,
             }}
