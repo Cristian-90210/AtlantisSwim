@@ -290,6 +290,11 @@ export const userService = {
     delete: async (id: string) => {
         await axiosInstance.delete(`/users/${id}`);
     },
+    // The logged-in user updates their own avatar (data URL). Returns the new avatar.
+    updateMyAvatar: async (avatar: string | null): Promise<string | null> => {
+        const res = await axiosInstance.put('/users/me/avatar', { avatar });
+        return res.data?.avatar ?? null;
+    },
 };
 
 // ── Reservation / Booking Service (real API) ──────────────────────────────────
@@ -777,6 +782,19 @@ export const paymentService = {
         contactPhone: string;
     }): Promise<{ isSuccess: boolean; message?: string; transactionReference?: string }> => {
         const res = await axiosInstance.post('/payments/process', dto);
+        return res.data;
+    },
+};
+
+// ── Password reset (self-service) ─────────────────────────────────────────────
+
+export const passwordService = {
+    forgot: async (email: string): Promise<{ isSuccess: boolean; message: string; token?: string | null }> => {
+        const res = await axiosInstance.post('/session/forgot-password', { email });
+        return res.data;
+    },
+    reset: async (token: string, newPassword: string): Promise<{ isSuccess: boolean; message: string }> => {
+        const res = await axiosInstance.post('/session/reset-password', { token, newPassword });
         return res.data;
     },
 };

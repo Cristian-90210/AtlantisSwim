@@ -37,6 +37,7 @@ import { Announcements } from './pages/admin/Announcements';
 import { AdminCourses } from './pages/admin/Courses';
 import { AdminServices } from './pages/admin/Services';
 import { Login } from './pages/Login';
+import { ForgotPassword } from './pages/ForgotPassword';
 import { CartPage } from './pages/Cart';
 import { Checkout } from './pages/Checkout';
 import { NotFound } from './pages/NotFound';
@@ -72,6 +73,7 @@ function App() {
               <NotificationsProvider>
                 <Routes>
                   <Route path="/login" element={<Login />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/404" element={<NotFound />} />
                   <Route path="/401" element={<Unauthorized />} />
                   <Route path="/403" element={<Forbidden />} />

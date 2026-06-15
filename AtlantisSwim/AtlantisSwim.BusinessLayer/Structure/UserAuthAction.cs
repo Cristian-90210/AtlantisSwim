@@ -38,7 +38,8 @@ namespace AtlantisSwim.BusinessLayer.Structure
                         UserRole.Admin   => "Admin",
                         _                => user.Role.ToString()
                     },
-                    Token = token
+                    Token  = token,
+                    Avatar = user.Avatar
                 }
             };
         }

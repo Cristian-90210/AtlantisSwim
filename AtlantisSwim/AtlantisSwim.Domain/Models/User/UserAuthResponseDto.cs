@@ -16,5 +16,8 @@ namespace AtlantisSwim.Domain.Models.User
 
         /// <summary>JWT bearer token — store as auth_token in localStorage</summary>
         public string Token     { get; set; } = string.Empty;
+
+        /// <summary>Profile picture as a data URL, or null.</summary>
+        public string? Avatar   { get; set; }
     }
 }
